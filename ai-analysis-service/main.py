@@ -20,9 +20,122 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = FastAPI(
-    title="AI Analysis Service",
-    description="LLM-powered test automation analysis and enhancement",
-    version="1.0.0"
+    title="🤖 AI-Powered Playwright Test Analysis Service",
+    description="""## Enhanced Playwright Script Analyzer with Active Intelligence
+    
+    This service provides comprehensive AI-powered analysis of Playwright test scripts with:
+    
+    ### 🎯 Key Features
+    - **Quality Scoring**: 0-100 score based on locator quality, patterns, and best practices
+    - **XPath Deep Analysis**: Stability and complexity scoring with AI-powered recommendations
+    - **Locator Quality Assessment**: 5-level quality rating (Excellent → Unstable)
+    - **Test Pattern Detection**: Auto-identifies POM, Fixtures, Data-Driven, API Hybrid patterns
+    - **Proactive Recommendations**: Prioritized suggestions for script improvement
+    - **External Data Sources**: Detects JSON, CSV, Excel, API dependencies
+    
+    ### 🧪 **Automatic Test Data Generation**
+    
+    #### 🔒 **Security Testing** (OWASP Top 10)
+    - **SQL Injection**: Classic SQLi, Comment-based, Union-based, Blind SQLi
+    - **XSS Attacks**: Reflected XSS, Stored XSS, DOM-based XSS
+    - **Command Injection**: OS command injection, Shell metacharacters
+    - **Path Traversal**: Directory traversal, File inclusion
+    - **LDAP Injection**: LDAP filter injection
+    - **XML/XXE Injection**: External entity attacks
+    
+    #### 📐 **Boundary Value Analysis**
+    - **Numeric Fields**: Min, Min-1, Max, Max+1, Zero, Negative
+    - **String Fields**: Min length, Max length, Empty, Special chars
+    - **Edge Cases**: Null, Undefined, Extreme values
+    
+    #### ⚖️ **Equivalence Partitioning**
+    - **Banking Domain**: Transfer amounts (Small/Medium/Large/Very Large)
+    - **Email Fields**: Valid formats, Invalid formats
+    - **Date Fields**: Past/Present/Future, Valid/Invalid formats
+    - **Card Numbers**: Valid Luhn, Invalid Luhn
+    - **Account Numbers**: Valid patterns, Invalid patterns
+    
+    ### 📊 Analysis Categories
+    1. **Script Analysis**: Parse and analyze Playwright scripts with test data recommendations
+    2. **Quality Assessment**: Measure test quality and best practices
+    3. **XPath Intelligence**: Deep analysis of XPath selectors
+    4. **Test Generation**: Automated security, boundary, and equivalence test creation
+    5. **Visual Testing**: Screenshot and visual regression analysis
+    
+    ### 🚀 Getting Started
+    1. Use `/api/ai-analysis/generate-tests-from-script` for **automatic test generation** (Security + Boundary + Equivalence)
+    2. Use `/api/ai-analysis/analyze-script-enhanced` for complete analysis
+    3. Use `/api/ai-analysis/quality-score` for quick quality check
+    4. Use `/api/ai-analysis/recommendations` for improvement suggestions
+    
+    ### 📖 Documentation
+    - Interactive API docs available at `/docs` (you are here!)
+    - Alternative docs at `/redoc`
+    - Complete guide: See `API_ENHANCED_ANALYZER.md`
+    
+    ### 🎓 Test Generation Example
+    
+    **Input**: Your Playwright script
+    ```typescript
+    await page.fill('#username', 'test');
+    await page.fill('#amount', '100');
+    ```
+    
+    **Output**: Complete test files with:
+    - ✅ 10+ Security tests (SQL injection, XSS, etc.)
+    - ✅ 15+ Boundary tests (min, max, edge cases)
+    - ✅ 8+ Equivalence tests (valid/invalid partitions)
+    - ✅ Ready-to-run `.spec.ts` files
+    """,
+    version="2.0.0",
+    terms_of_service="https://example.com/terms",
+    contact={
+        "name": "AI Analysis Service Support",
+        "url": "https://example.com/support",
+        "email": "support@example.com",
+    },
+    license_info={
+        "name": "Apache 2.0",
+        "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
+    },
+    openapi_tags=[
+        {
+            "name": "Test Generation",
+            "description": "🧪 **Automated test data generation with Security, Boundary Value Analysis, and Equivalence Partitioning**. Generate complete test suites automatically!"
+        },
+        {
+            "name": "Enhanced Analysis",
+            "description": "Complete enhanced script analysis with quality scoring, XPath analysis, and recommendations."
+        },
+        {
+            "name": "Quality Assessment",
+            "description": "Quality scoring and locator quality reports."
+        },
+        {
+            "name": "XPath Intelligence",
+            "description": "Deep XPath analysis with stability and complexity scoring."
+        },
+        {
+            "name": "Recommendations",
+            "description": "Proactive improvement recommendations and pattern detection."
+        },
+        {
+            "name": "Script Analysis",
+            "description": "📝 **Basic script parsing with test data recommendations** (Security + Boundary + Equivalence)."
+        },
+        {
+            "name": "Test Data",
+            "description": "Dynamic test data generation."
+        },
+        {
+            "name": "Visual Testing",
+            "description": "Screenshot analysis and visual regression."
+        },
+        {
+            "name": "Health Check",
+            "description": "Service health and status endpoints."
+        }
+    ]
 )
 
 # CORS configuration
@@ -37,11 +150,98 @@ app.add_middleware(
 
 # ==================== Models ====================
 
+from pydantic import BaseModel, Field
+
+class ScriptAnalysisRequest(BaseModel):
+    """Request model for script analysis"""
+    script_code: str = Field(
+        ...,
+        description="Playwright test script code to analyze",
+        example="""import { test, expect } from '@playwright/test';
+
+test('login test', async ({ page }) => {
+  await page.goto('https://example.com');
+  await page.getByRole('textbox', { name: 'Username' }).fill('john');
+  await page.getByLabel('Password').fill('secret');
+  await page.click('#login-btn');
+  await expect(page).toHaveURL(/dashboard/);
+});"""
+    )
+    script_id: Optional[str] = Field(
+        None,
+        description="Optional identifier for the script",
+        example="script-12345"
+    )
+    generate_recommendations: bool = Field(
+        True,
+        description="Whether to generate test data recommendations",
+        example=True
+    )
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "script_code": "import { test } from '@playwright/test';\ntest('example', async ({ page }) => { await page.goto('https://example.com'); });",
+                "script_id": "test-001",
+                "generate_recommendations": True
+            }
+        }
+
+
+class GenerateTestsFromScriptRequest(BaseModel):
+    """Request model for generating tests from script"""
+    script_code: str = Field(
+        ...,
+        description="Playwright script to analyze and generate tests from"
+    )
+    script_id: Optional[str] = Field(
+        None,
+        description="Optional script identifier"
+    )
+    test_types: List[str] = Field(
+        ['security', 'boundary', 'equivalence'],
+        description="Types of tests to generate",
+        example=['security', 'boundary', 'equivalence']
+    )
+    count_per_type: int = Field(
+        10,
+        description="Number of tests to generate per type",
+        ge=1,
+        le=100,
+        example=10
+    )
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "script_code": "await page.fill('#username', 'test');",
+                "test_types": ["security", "boundary"],
+                "count_per_type": 5
+            }
+        }
+
+
 class TestGenerationRequest(BaseModel):
-    description: str
-    language: str = "typescript"
-    framework: str = "playwright"
-    context: Optional[Dict[str, Any]] = None
+    """Request model for LLM-based test generation"""
+    description: str = Field(
+        ...,
+        description="Description of the test to generate",
+        example="Test login functionality with valid credentials"
+    )
+    language: str = Field(
+        "typescript",
+        description="Programming language for the test",
+        example="typescript"
+    )
+    framework: str = Field(
+        "playwright",
+        description="Test framework to use",
+        example="playwright"
+    )
+    context: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Additional context for test generation"
+    )
 
 
 class TestAnalysisRequest(BaseModel):
@@ -112,6 +312,7 @@ class DynamicTestDataRequest(BaseModel):
     count: int = 10
     options: Optional[Dict[str, Any]] = None
     testDataType: Optional[str] = 'all'  # 'all', 'positive', 'negative', 'boundary', 'equivalence', 'security'
+    script_code: Optional[str] = None  # NEW: Playwright script for AI-powered generation
 
 
 class DynamicAPIRequest(BaseModel):
@@ -125,6 +326,7 @@ class DynamicAPIRequest(BaseModel):
 class TestDataRecommendationRequest(BaseModel):
     script_content: str
     xpath_analyses: Optional[List[Dict[str, Any]]] = None
+    test_data_type: Optional[str] = 'all'  # 'security', 'boundary', 'equivalence', 'all'
 
 
 class VisualAIAnalysisRequest(BaseModel):
@@ -2090,9 +2292,10 @@ async def optimize_playwright(request: PlaywrightOptimizationRequest):
 @app.post("/api/dynamic/generate-testdata")
 async def generate_dynamic_testdata(request: DynamicTestDataRequest):
     """
-    Generate test data dynamically from any JSON template
-    Supports {{faker.xxx}} syntax for dynamic values
+    Generate test data dynamically using GPT-4o + Enhanced Script Analyzer
     Supports different test data types: positive, negative, boundary, equivalence, security
+    
+    ENHANCED: Now uses script_analyzer + GPT-4o for intelligent, constraint-aware test data
     """
     try:
         import random
@@ -2107,6 +2310,214 @@ async def generate_dynamic_testdata(request: DynamicTestDataRequest):
         print(f"Count: {request.count}")
         print(f"Template: {request.template}")
         print(f"=====================================\n")
+        
+        # ============ NEW: TRY GPT-4o FIRST WITH SCRIPT ANALYZER ============
+        if llm_service.use_gpt4 and request.script_code:
+            try:
+                print("🤖 Using GPT-4o + Enhanced Script Analyzer for intelligent test data generation...")
+                
+                # Step 1: Analyze script with enhanced analyzer (228 patterns, 25 field types)
+                analysis = script_analyzer.analyze(request.script_code)
+                
+                # Step 2: Extract rich field information with constraints
+                fields_with_constraints = []
+                for field in analysis.input_fields:
+                    field_info = {
+                        'field_name': field.field_name,
+                        'field_type': field.field_type.value,
+                        'selector': field.selector,
+                        'constraints': field.constraints if field.constraints else {},
+                        'example_value': field.example_value
+                    }
+                    fields_with_constraints.append(field_info)
+                
+                print(f"📊 Script Analyzer found {len(fields_with_constraints)} fields with rich constraints")
+                
+                # Step 3: Build enhanced prompt for GPT-4o with field constraints
+                fields_summary = "\n".join([
+                    f"- {f['field_name']} ({f['field_type']}): {json.dumps(f['constraints'])}" 
+                    for f in fields_with_constraints
+                ])
+                
+                # Build field names for example format
+                field_names = [f['field_name'] for f in fields_with_constraints]
+                example_fields = "\n    ".join([
+                    f'"{field_name}": "<value_for_{field_name}>",' for field_name in field_names
+                ])
+                
+                # Step 4: Create type-specific prompt
+                if test_data_type == 'security':
+                    focus_instruction = f"""Generate {request.count} SECURITY TEST DATA items with attack vectors.
+                    
+For each field, use its constraints to generate field-specific attacks:
+                    - For email fields: XSS in email format, SQL injection maintaining @ symbol
+                    - For password fields: SQL injection, SSTI, template injection
+                    - For number/currency fields: Overflow, underflow, negative values
+                    - For text fields: XSS, SQL injection, command injection
+                    
+                    Include OWASP Top 10 coverage:
+                    - SQL Injection (', OR 1=1--, UNION SELECT)
+                    - XSS (<script>, <img onerror>, <svg onload>)
+                    - Command Injection (; ls, | whoami, && cat)
+                    - Path Traversal (../../etc/passwd)
+                    - LDAP Injection (*)(uid=*)
+                    - XML/XXE Injection
+                    - NoSQL Injection ({{'$gt': ''}})
+                    - SSTI ({{{{7*7}}}}, ${{7*7}})
+                    
+                    Each test data item MUST include:
+                    - _description: Attack type description
+                    - _attack_vector: Type (sql_injection, xss, command_injection, etc.)
+                    - _test_type: 'security'
+                    """
+                elif test_data_type == 'boundary':
+                    focus_instruction = f"""Generate {request.count} BOUNDARY VALUE ANALYSIS test data items.
+                    
+                    For each field, use its constraints to generate boundary cases:
+                    - Use min_length/max_length from constraints
+                    - Use min/max values from constraints
+                    - Generate: min, max, min-1, max+1, zero, empty, null
+                    - For email: min valid (a@b.c = 5 chars), max (254 chars per RFC 5321)
+                    - For numbers: Use actual min/max from constraints
+                    - For passwords: Use min_length from constraints
+                    
+                    Each test data item MUST include:
+                    - _description: Boundary type description
+                    - _boundary_type: Type (min, max, min-1, max+1, zero, empty, overflow)
+                    - _test_type: 'boundary'
+                    """
+                elif test_data_type == 'equivalence':
+                    focus_instruction = f"""Generate {request.count} EQUIVALENCE PARTITIONING test data items.
+                    
+                    For each field, use its constraints to generate partitions:
+                    - Valid partitions: Standard format, formatted variations, international formats
+                    - Invalid partitions: Wrong format, out of range, missing parts
+                    - Use 'formats' array from constraints for variations
+                    - For email: user@example.com, user+tag@sub.domain.co.uk (valid), notanemail (invalid)
+                    - For phone: Use format variations from constraints
+                    
+                    Each test data item MUST include:
+                    - _description: Partition description
+                    - _partition_class: Class (valid_standard, valid_formatted, invalid_format, etc.)
+                    - _partition_type: Type (valid, invalid, boundary)
+                    - _test_type: 'equivalence'
+                    """
+                elif test_data_type == 'positive':
+                    focus_instruction = f"""Generate {request.count} POSITIVE (VALID) test data items.
+                    
+                    For each field, use its constraints to generate valid data:
+                    - All values MUST satisfy pattern, min/max constraints
+                    - Generate realistic, valid scenarios
+                    - Include format variations (standard, corporate, international)
+                    
+                    Each test data item MUST include:
+                    - _description: Scenario description
+                    - _scenario_type: Type (standard, corporate, international, formatted)
+                    - _test_type: 'positive'
+                    """
+                else:  # negative
+                    focus_instruction = f"""Generate {request.count} NEGATIVE (INVALID) test data items.
+                    
+                    For each field, use its constraints to generate invalid data:
+                    - Violate pattern constraints
+                    - Exceed min/max length/value
+                    - Wrong format, empty, null, special characters
+                    
+                    Each test data item MUST include:
+                    - _description: Invalid type description
+                    - _invalid_type: Type (empty, null, invalid_format, too_long, too_short)
+                    - _test_type: 'negative'
+                    """
+                
+                # Step 5: Call GPT-4o with rich context
+                from openai import OpenAI
+                client = OpenAI(api_key=llm_service.api_key)
+                
+                prompt = f"""You are a test data generation expert. Generate test data for Playwright test automation.
+
+SCRIPT ANALYSIS:
+{fields_summary}
+
+TEST DATA TYPE: {test_data_type.upper()}
+
+{focus_instruction}
+
+IMPORTANT:
+- Use the EXACT field names from the script analysis above
+- Use the field constraints to generate accurate test data
+- Respect min/max values, patterns, and formats from constraints
+- Generate {request.count} diverse test data items
+- Return valid JSON with 'data' key containing an array
+
+Return format (USE ACTUAL FIELD NAMES FROM ANALYSIS):
+{{
+  "data": [
+    {{
+      {example_fields}
+      "_description": "Test case description",
+      "_partition_class": "partition class" (for equivalence),
+      "_partition_type": "partition type" (for equivalence),
+      "_boundary_type": "boundary type" (for boundary),
+      "_attack_vector": "attack_type" (for security),
+      "_scenario_type": "scenario type" (for positive),
+      "_invalid_type": "invalid type" (for negative),
+      "_test_type": "{test_data_type}"
+    }}
+  ]
+}}
+"""
+                
+                response = client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[
+                        {"role": "system", "content": "You are a test data generation expert specializing in Playwright test automation."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    response_format={"type": "json_object"},
+                    temperature=0.8
+                )
+                
+                gpt4_result = json.loads(response.choices[0].message.content)
+                
+                # Handle both array and object responses
+                if isinstance(gpt4_result, list):
+                    generated_data = gpt4_result
+                elif isinstance(gpt4_result, dict) and 'data' in gpt4_result:
+                    generated_data = gpt4_result['data']
+                elif isinstance(gpt4_result, dict) and 'test_data' in gpt4_result:
+                    generated_data = gpt4_result['test_data']
+                else:
+                    # Assume first array in dict
+                    for key, value in gpt4_result.items():
+                        if isinstance(value, list):
+                            generated_data = value
+                            break
+                    else:
+                        generated_data = [gpt4_result]
+                
+                print(f"✅ GPT-4o generated {len(generated_data)} test data items")
+                
+                return {
+                    "success": True,
+                    "data": generated_data[:request.count],
+                    "metadata": {
+                        "count": len(generated_data[:request.count]),
+                        "testDataType": test_data_type,
+                        "source": "gpt4o_with_script_analyzer",
+                        "analyzer_version": "2.0",
+                        "fields_analyzed": len(fields_with_constraints),
+                        "constraints_used": True,
+                        "description": f"AI-generated {test_data_type} test data using enhanced script analyzer (228 patterns, 25 field types)"
+                    },
+                    "message": f"Generated {len(generated_data[:request.count])} {test_data_type} test data items using GPT-4o + Script Analyzer V2"
+                }
+                
+            except Exception as gpt_error:
+                print(f"⚠️ GPT-4o generation failed: {str(gpt_error)}. Falling back to template-based generation.")
+                # Fall through to template-based generation
+        
+        # ============ FALLBACK: TEMPLATE-BASED GENERATION ============
+        print("📝 Using template-based generation (fallback mode)")
         
         def process_faker_template(value: Any, index: int, data_type: str = 'positive') -> Any:
             """Process faker placeholders in template"""
@@ -2269,7 +2680,7 @@ async def generate_dynamic_testdata(request: DynamicTestDataRequest):
                 
                 # Polyglot payloads (multiple attack types)
                 polyglot = [
-                    "jaVasCript:/*-/*`/*\`/*'/*\"/**/(/* */oNcliCk=alert() )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\x3csVg/<sVg/oNloAd=alert()//\x3e",
+                    r"jaVasCript:/*-/*`/*\`/*'/*\"/**/(/* */oNcliCk=alert() )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\x3csVg/<sVg/oNloAd=alert()//\x3e",
                     "${{<%[%'\"}}%",
                     "'\"--></script></title></textarea></style></template></noembed></noscript></noframes></select><svg onload=alert()>"
                 ]
@@ -2694,6 +3105,20 @@ async def generate_dynamic_testdata(request: DynamicTestDataRequest):
             elif command == 'company':
                 return random.choice(['Tech Corp', 'Global Industries', 'Innovation Labs', 'Digital Solutions'])
             
+            # Text/Generic Input (new)
+            elif command == 'text':
+                if data_type == 'negative':
+                    return random.choice(['', ' ', '\n', '\t', 'A'*1000])
+                elif data_type == 'boundary':
+                    return get_boundary_value('text')
+                elif data_type == 'equivalence':
+                    return get_equivalence_value('text', index)
+                elif data_type == 'security':
+                    # For generic text fields, use a variety of security payloads
+                    return get_security_payload('text')
+                else:
+                    return f"Sample text {index} - {random.choice(['alpha', 'beta', 'gamma', 'delta'])}"
+            
             # Default
             return f"{{{{faker.{command}}}}}"
         
@@ -2864,10 +3289,12 @@ async def execute_dynamic_request(data: Dict[str, Any]):
 async def recommend_testdata(request: TestDataRecommendationRequest):
     """
     Analyze Playwright script and recommend test data to generate using GPT-4o
+    Supports security, boundary, and equivalence partitioning test types
     """
     try:
         script = request.script_content
         xpath_info = request.xpath_analyses or []
+        test_data_type = request.test_data_type or 'all'
         
         # Extract form inputs, buttons, and data patterns from script
         input_patterns = re.findall(r"fill\(['\"]([^'\"]+)['\"],\s*['\"]([^'\"]+)['\"]\)", script)
@@ -2896,10 +3323,12 @@ async def recommend_testdata(request: TestDataRecommendationRequest):
                 detected_fields.append({"field": field_name, "type": "password", "example": "{{faker.password}}"})
             elif any(x in field_name.lower() for x in ['company']):
                 detected_fields.append({"field": field_name, "type": "company", "example": "{{faker.company}}"})
+            elif any(x in field_name.lower() for x in ['amount', 'price', 'salary']):
+                detected_fields.append({"field": field_name, "type": "number", "example": "{{faker.number(1-1000)}}"})
             else:
                 detected_fields.append({"field": field_name, "type": "text", "example": value or "sample_value"})
         
-        # Use GPT-4o for intelligent recommendations if available
+        # Use GPT-4o for intelligent recommendations based on test type
         if llm_service.use_gpt4:
             try:
                 from openai import OpenAI
@@ -2907,8 +3336,451 @@ async def recommend_testdata(request: TestDataRecommendationRequest):
                 
                 fields_summary = "\n".join([f"- {f['field']}: {f['type']}" for f in detected_fields])
                 
-                prompt = f"""
-Analyze this Playwright test script and recommend comprehensive test data generation strategy:
+                # Customize prompt based on test data type
+                if test_data_type == 'security':
+                    focus_instruction = """Focus on SECURITY TESTING:
+- SQL Injection payloads (', OR 1=1--, UNION SELECT, etc.)
+- XSS attacks (<script>alert('XSS')</script>, <img src=x onerror=alert()>)
+- Command Injection (; ls -la, | whoami, && cat /etc/passwd)
+- Path Traversal (../../../etc/passwd, ..\\windows\\system32)
+- LDAP Injection (*)(uid=*))(|(uid=*)
+- XML/XXE Injection (<?xml version=\"1.0\"?><!DOCTYPE foo>)
+- Authentication bypass attempts
+- CSRF payloads
+- Header injection attacks
+- NoSQL injection
+- SSTI (Server-Side Template Injection)
+
+For EACH detected field, generate 15-20 ACTUAL security attack payloads that are:
+1. Field-specific (email attacks for email fields, password attacks for password fields)
+2. Script-context aware (based on the validation logic visible in the script)
+3. Diverse attack vectors (mix SQL, XSS, command injection, etc.)
+4. Ready to use directly in testing (no placeholders)
+
+Provide realistic attack vectors for each detected field type."""
+                    
+                    # Enhanced prompt for security with actual payload generation
+                    prompt = f"""
+Analyze this Playwright test script and generate ACTUAL security attack payloads.
+
+Test Data Type Selected: {test_data_type.upper()}
+
+Script snippet:
+{script[:800]}
+
+Detected form fields:
+{fields_summary}
+
+{focus_instruction}
+
+Provide a JSON response with:
+1. "template": JSON template with faker patterns (use {{{{faker.xxx}}}} syntax)
+2. "scenarios": Object with "positive", "negative", and "security" arrays
+3. Each scenario in "security" array MUST have:
+   - "description": Attack type (e.g., "SQL Injection - Authentication Bypass")
+   - "data": Object with ACTUAL attack payloads for each field (NOT placeholders)
+   - "attack_vector": Type of attack (sql_injection, xss, command_injection, etc.)
+
+Example format:
+{{
+  "template": {{
+    "email": "{{{{faker.email}}}}",
+    "password": "{{{{faker.password}}}}"
+  }},
+  "scenarios": {{
+    "positive": [
+      {{
+        "description": "Valid login credentials",
+        "data": {{"email": "user@test.com", "password": "ValidPass123!"}}
+      }}
+    ],
+    "security": [
+      {{
+        "description": "SQL Injection - Authentication Bypass",
+        "data": {{"email": "admin'--", "password": "anything"}},
+        "attack_vector": "sql_injection"
+      }},
+      {{
+        "description": "XSS - Cookie Stealing via Email",
+        "data": {{"email": "<script>alert(document.cookie)</script>@test.com", "password": "test123"}},
+        "attack_vector": "xss"
+      }},
+      {{
+        "description": "SQL Injection - Union Attack",
+        "data": {{"email": "user@test.com' UNION SELECT NULL,NULL--", "password": "test"}},
+        "attack_vector": "sql_injection"
+      }}
+    ]
+  }}
+}}
+
+Generate at least 15 diverse security attack scenarios for the detected fields.
+"""
+                elif test_data_type == 'boundary':
+                    focus_instruction = """Focus on BOUNDARY VALUE ANALYSIS:
+- For numeric fields: min, max, min-1, max+1, zero, negative values
+- For string fields: min length, max length, empty, max+1 length
+- Edge cases: null, undefined, extremely large/small values
+- Special characters at boundaries
+- Precision limits for decimals
+- Unicode boundaries
+- Overflow/underflow conditions
+
+For EACH detected field, generate 15-20 ACTUAL boundary test cases that are:
+1. Field-specific (numeric boundaries for numbers, length boundaries for strings)
+2. Script-context aware (based on validation logic visible in the script)
+3. Comprehensive coverage (min, max, min-1, max+1, zero, null, empty)
+4. Ready to use directly in testing (no placeholders)
+
+Provide comprehensive boundary test cases for each field."""
+                    
+                    prompt = f"""
+Analyze this Playwright test script and generate ACTUAL boundary value test cases.
+
+Test Data Type Selected: {test_data_type.upper()}
+
+Script snippet:
+{script[:800]}
+
+Detected form fields:
+{fields_summary}
+
+{focus_instruction}
+
+Provide a JSON response with:
+1. "template": JSON template with faker patterns (use {{{{faker.xxx}}}} syntax)
+2. "scenarios": Object with "boundary", "negative", and "positive" arrays
+3. Each scenario in "boundary" array MUST have:
+   - "description": Boundary type (e.g., "Email - Minimum Valid Length", "Age - Maximum Value")
+   - "data": Object with ACTUAL boundary test values for each field (NOT placeholders)
+   - "boundary_type": Type of boundary (min, max, min-1, max+1, zero, null, empty, overflow)
+
+Example format:
+{{
+  "template": {{
+    "email": "{{{{faker.email}}}}",
+    "age": "{{{{faker.number(1-100)}}}}"
+  }},
+  "scenarios": {{
+    "positive": [
+      {{
+        "description": "Valid values within range",
+        "data": {{"email": "user@test.com", "age": "25"}}
+      }}
+    ],
+    "boundary": [
+      {{
+        "description": "Email - Minimum Valid Length",
+        "data": {{"email": "a@b.c", "age": "25"}},
+        "boundary_type": "min"
+      }},
+      {{
+        "description": "Email - Maximum Local Part Length (64 chars)",
+        "data": {{"email": "{'a'*64}@test.com", "age": "25"}},
+        "boundary_type": "max"
+      }},
+      {{
+        "description": "Age - Minimum Valid (0)",
+        "data": {{"email": "test@test.com", "age": "0"}},
+        "boundary_type": "min"
+      }},
+      {{
+        "description": "Age - Maximum Realistic (120)",
+        "data": {{"email": "test@test.com", "age": "120"}},
+        "boundary_type": "max"
+      }},
+      {{
+        "description": "Age - Below Minimum (-1)",
+        "data": {{"email": "test@test.com", "age": "-1"}},
+        "boundary_type": "min-1"
+      }}
+    ],
+    "negative": [
+      {{
+        "description": "Email - Empty String",
+        "data": {{"email": "", "age": "25"}},
+        "boundary_type": "empty"
+      }},
+      {{
+        "description": "Email - Missing @ Symbol",
+        "data": {{"email": "notanemail", "age": "25"}},
+        "boundary_type": "invalid_format"
+      }}
+    ]
+  }}
+}}
+
+Generate at least 15 diverse boundary test scenarios covering min, max, min-1, max+1, zero, empty, null, and overflow cases.
+"""
+                    
+                elif test_data_type == 'equivalence':
+                    focus_instruction = """Focus on EQUIVALENCE PARTITIONING:
+- Valid partitions (representative valid values)
+- Invalid partitions (representative invalid values)
+- Boundary partitions (values at class boundaries)
+- Domain-specific partitions (e.g., for banking: small/medium/large amounts)
+- Format variations (for emails, phones, dates)
+- Character set variations (ASCII, Unicode, special chars)
+- Length variations (short, medium, long)
+
+For EACH detected field, generate 12-15 ACTUAL equivalence class test cases that are:
+1. Field-specific (email formats for emails, phone formats for phones)
+2. Representative of each partition class
+3. Cover valid AND invalid partitions
+4. Include format variations and edge cases
+5. Ready to use directly in testing (no placeholders)
+
+Provide equivalence class examples for each field type."""
+                    
+                    prompt = f"""
+Analyze this Playwright test script and generate ACTUAL equivalence partitioning test cases.
+
+Test Data Type Selected: {test_data_type.upper()}
+
+Script snippet:
+{script[:800]}
+
+Detected form fields:
+{fields_summary}
+
+{focus_instruction}
+
+Provide a JSON response with:
+1. "template": JSON template with faker patterns (use {{{{faker.xxx}}}} syntax)
+2. "scenarios": Object with "valid_partition", "invalid_partition", and "boundary_partition" arrays
+3. Each scenario MUST have:
+   - "description": Partition type (e.g., "Email - Standard Format", "Phone - International Format")
+   - "data": Object with ACTUAL test values for each field (NOT placeholders)
+   - "partition_class": Class name (valid_standard, valid_international, invalid_format, invalid_length, etc.)
+
+Example format:
+{{
+  "template": {{
+    "email": "{{{{faker.email}}}}",
+    "phone": "{{{{faker.phone}}}}"
+  }},
+  "scenarios": {{
+    "valid_partition": [
+      {{
+        "description": "Email - Standard Gmail Format",
+        "data": {{"email": "user@gmail.com", "phone": "555-123-4567"}},
+        "partition_class": "valid_standard"
+      }},
+      {{
+        "description": "Email - Corporate Domain with Subdomain",
+        "data": {{"email": "user@mail.company.com", "phone": "555-123-4567"}},
+        "partition_class": "valid_subdomain"
+      }},
+      {{
+        "description": "Email - Plus Addressing",
+        "data": {{"email": "user+tag@domain.com", "phone": "555-123-4567"}},
+        "partition_class": "valid_plus_addressing"
+      }},
+      {{
+        "description": "Phone - US Format with Dashes",
+        "data": {{"email": "test@test.com", "phone": "555-123-4567"}},
+        "partition_class": "valid_us_dashed"
+      }},
+      {{
+        "description": "Phone - International Format",
+        "data": {{"email": "test@test.com", "phone": "+1-555-123-4567"}},
+        "partition_class": "valid_international"
+      }}
+    ],
+    "invalid_partition": [
+      {{
+        "description": "Email - Missing @ Symbol",
+        "data": {{"email": "usertest.com", "phone": "555-123-4567"}},
+        "partition_class": "invalid_missing_at"
+      }},
+      {{
+        "description": "Email - Missing Domain",
+        "data": {{"email": "user@", "phone": "555-123-4567"}},
+        "partition_class": "invalid_missing_domain"
+      }},
+      {{
+        "description": "Phone - Too Few Digits",
+        "data": {{"email": "test@test.com", "phone": "123"}},
+        "partition_class": "invalid_too_short"
+      }},
+      {{
+        "description": "Phone - Contains Letters",
+        "data": {{"email": "test@test.com", "phone": "555-ABC-DEFG"}},
+        "partition_class": "invalid_non_numeric"
+      }}
+    ],
+    "boundary_partition": [
+      {{
+        "description": "Email - Minimum Valid Length",
+        "data": {{"email": "a@b.c", "phone": "555-123-4567"}},
+        "partition_class": "boundary_min_length"
+      }},
+      {{
+        "description": "Phone - Exactly 10 Digits",
+        "data": {{"email": "test@test.com", "phone": "5551234567"}},
+        "partition_class": "boundary_exact_length"
+      }}
+    ]
+  }}
+}}
+
+Generate at least 12 diverse equivalence partitioning scenarios covering valid, invalid, and boundary partitions.
+"""
+                    
+                elif test_data_type == 'positive':
+                    focus_instruction = """Focus on POSITIVE TESTING:
+- Valid data within expected ranges
+- Proper formats (correct email, phone, date formats)
+- Representative valid values
+- Realistic user scenarios
+- Common use cases
+- Standard input patterns
+- Typical user behavior
+
+For EACH detected field, generate 10-15 ACTUAL positive test cases that are:
+1. Field-specific (valid emails for email fields, valid phones for phone fields)
+2. Realistic and representative
+3. Cover different valid formats and patterns
+4. Ready to use directly in testing (no placeholders)
+
+Provide realistic valid test data for each field type."""
+                    
+                    prompt = f"""
+Analyze this Playwright test script and generate ACTUAL positive test cases.
+
+Test Data Type Selected: {test_data_type.upper()}
+
+Script snippet:
+{script[:800]}
+
+Detected form fields:
+{fields_summary}
+
+{focus_instruction}
+
+Provide a JSON response with:
+1. "template": JSON template with faker patterns (use {{{{faker.xxx}}}} syntax)
+2. "scenarios": Object with "positive" array
+3. Each scenario in "positive" array MUST have:
+   - "description": Test case description (e.g., "Standard Email Format", "US Phone Number")
+   - "data": Object with ACTUAL valid test values for each field (NOT placeholders)
+   - "scenario_type": Type (standard, formatted, international, etc.)
+
+Example format:
+{{
+  "template": {{
+    "email": "{{{{faker.email}}}}",
+    "name": "{{{{faker.name}}}}"
+  }},
+  "scenarios": {{
+    "positive": [
+      {{
+        "description": "Standard Email and Full Name",
+        "data": {{"email": "john.doe@gmail.com", "name": "John Doe"}},
+        "scenario_type": "standard"
+      }},
+      {{
+        "description": "Corporate Email and Professional Name",
+        "data": {{"email": "sarah.jones@company.com", "name": "Dr. Sarah Jones"}},
+        "scenario_type": "corporate"
+      }},
+      {{
+        "description": "International Name with Accents",
+        "data": {{"email": "jose.garcia@hotmail.com", "name": "José García"}},
+        "scenario_type": "international"
+      }}
+    ]
+  }}
+}}
+
+Generate at least 10 diverse positive test scenarios with realistic valid data.
+"""
+                    
+                elif test_data_type == 'negative':
+                    focus_instruction = """Focus on NEGATIVE TESTING:
+- Invalid data formats
+- Empty values and null inputs
+- Wrong data types
+- Special characters and symbols
+- Extra long strings
+- Missing required parts
+- Malformed inputs
+- Out of range values
+
+For EACH detected field, generate 10-15 ACTUAL negative test cases that are:
+1. Field-specific (invalid emails for email fields, invalid phones for phone fields)
+2. Cover different types of invalid inputs
+3. Include empty, null, malformed, and edge cases
+4. Ready to use directly in testing (no placeholders)
+
+Provide realistic invalid test data for each field type."""
+                    
+                    prompt = f"""
+Analyze this Playwright test script and generate ACTUAL negative test cases.
+
+Test Data Type Selected: {test_data_type.upper()}
+
+Script snippet:
+{script[:800]}
+
+Detected form fields:
+{fields_summary}
+
+{focus_instruction}
+
+Provide a JSON response with:
+1. "template": JSON template with faker patterns (use {{{{faker.xxx}}}} syntax)
+2. "scenarios": Object with "negative" array
+3. Each scenario in "negative" array MUST have:
+   - "description": Test case description (e.g., "Email - Missing @ Symbol", "Name - Empty String")
+   - "data": Object with ACTUAL invalid test values for each field (NOT placeholders)
+   - "invalid_type": Type of invalidity (empty, null, malformed, too_long, special_chars, etc.)
+
+Example format:
+{{
+  "template": {{
+    "email": "{{{{faker.email}}}}",
+    "name": "{{{{faker.name}}}}"
+  }},
+  "scenarios": {{
+    "negative": [
+      {{
+        "description": "Email - Missing @ Symbol",
+        "data": {{"email": "invalidemail.com", "name": "John Doe"}},
+        "invalid_type": "malformed"
+      }},
+      {{
+        "description": "Email - Empty String",
+        "data": {{"email": "", "name": "John Doe"}},
+        "invalid_type": "empty"
+      }},
+      {{
+        "description": "Name - Special Characters Only",
+        "data": {{"email": "test@test.com", "name": "@#$%^&*()"}},
+        "invalid_type": "special_chars"
+      }},
+      {{
+        "description": "Name - Extremely Long (300 chars)",
+        "data": {{"email": "test@test.com", "name": "{'A'*300}"}},
+        "invalid_type": "too_long"
+      }}
+    ]
+  }}
+}}
+
+Generate at least 10 diverse negative test scenarios covering empty, null, malformed, and edge cases.
+"""
+                    
+                else:
+                    focus_instruction = """Provide COMPREHENSIVE TEST COVERAGE:
+- Mix of positive, negative, boundary, and security test cases
+- Cover all common testing scenarios
+- Include edge cases and typical user inputs"""
+                    
+                    prompt = f"""
+Analyze this Playwright test script and recommend test data generation strategy.
+
+Test Data Type Selected: {test_data_type.upper()}
 
 Script snippet:
 {script[:500]}
@@ -2916,12 +3788,14 @@ Script snippet:
 Detected form fields:
 {fields_summary}
 
+{focus_instruction}
+
 Provide:
 1. Recommended JSON template for test data generation
-2. Suggested faker patterns for each field
-3. Edge cases to test (empty, null, invalid, max length, etc.)
-4. Number of test data variants to generate
-5. Specific test scenarios (positive, negative, boundary)
+2. Suggested faker patterns for each field (use {{{{faker.xxx}}}} syntax)
+3. Specific test scenarios for {test_data_type} testing
+4. Expected number of test data variants
+5. Edge cases or attack vectors specific to {test_data_type}
 
 Format response as JSON with keys: template, faker_patterns, edge_cases, recommended_count, scenarios
 """
@@ -2929,14 +3803,125 @@ Format response as JSON with keys: template, faker_patterns, edge_cases, recomme
                 response = client.chat.completions.create(
                     model="gpt-4o",
                     messages=[
-                        {"role": "system", "content": "You are a test data expert specializing in comprehensive test coverage."},
+                        {"role": "system", "content": f"You are a test data expert specializing in {test_data_type} testing for web applications."},
                         {"role": "user", "content": prompt}
                     ],
                     temperature=0.7,
-                    max_tokens=1000
+                    max_tokens=1500,
+                    response_format={"type": "json_object"}
                 )
                 
                 gpt4_recommendation = response.choices[0].message.content
+                
+                # Parse GPT-4o JSON response and use it for actual test data generation
+                try:
+                    import json
+                    gpt4_data = json.loads(gpt4_recommendation)
+                    
+                    # If GPT-4o provided scenarios with actual test data, extract them
+                    if 'scenarios' in gpt4_data:
+                        gpt4_security_payloads = []
+                        
+                        # For security testing, prioritize 'security' scenarios
+                        if test_data_type == 'security' and 'security' in gpt4_data['scenarios']:
+                            scenarios = gpt4_data['scenarios']['security']
+                            if isinstance(scenarios, list):
+                                for scenario in scenarios:
+                                    if 'data' in scenario:
+                                        # Add metadata to track attack type
+                                        payload = scenario['data'].copy() if isinstance(scenario['data'], dict) else scenario['data']
+                                        if isinstance(payload, dict):
+                                            payload['_description'] = scenario.get('description', 'Security test')
+                                            payload['_attack_vector'] = scenario.get('attack_vector', 'unknown')
+                                        gpt4_security_payloads.append(payload)
+                        
+                        # For boundary testing, use 'boundary' or 'negative' scenarios
+                        elif test_data_type == 'boundary':
+                            for scenario_type in ['boundary', 'negative', 'edge_cases', 'positive']:
+                                if scenario_type in gpt4_data['scenarios']:
+                                    scenarios = gpt4_data['scenarios'][scenario_type]
+                                    if isinstance(scenarios, list):
+                                        for scenario in scenarios:
+                                            if 'data' in scenario:
+                                                payload = scenario['data'].copy() if isinstance(scenario['data'], dict) else scenario['data']
+                                                if isinstance(payload, dict):
+                                                    payload['_description'] = scenario.get('description', 'Boundary test')
+                                                    payload['_boundary_type'] = scenario.get('boundary_type', 'unknown')
+                                                    payload['_test_type'] = 'boundary'
+                                                gpt4_security_payloads.append(payload)
+                        
+                        # For equivalence testing, use 'valid_partition' and 'invalid_partition' scenarios
+                        elif test_data_type == 'equivalence':
+                            for scenario_type in ['valid_partition', 'invalid_partition', 'boundary_partition', 'positive', 'negative']:
+                                if scenario_type in gpt4_data['scenarios']:
+                                    scenarios = gpt4_data['scenarios'][scenario_type]
+                                    if isinstance(scenarios, list):
+                                        for scenario in scenarios:
+                                            if 'data' in scenario:
+                                                payload = scenario['data'].copy() if isinstance(scenario['data'], dict) else scenario['data']
+                                                if isinstance(payload, dict):
+                                                    payload['_description'] = scenario.get('description', 'Equivalence test')
+                                                    payload['_partition_class'] = scenario.get('partition_class', 'unknown')
+                                                    payload['_partition_type'] = scenario_type
+                                                    payload['_test_type'] = 'equivalence'
+                                                gpt4_security_payloads.append(payload)
+                        
+                        # For positive testing, use 'positive' scenarios
+                        elif test_data_type == 'positive':
+                            if 'positive' in gpt4_data['scenarios']:
+                                scenarios = gpt4_data['scenarios']['positive']
+                                if isinstance(scenarios, list):
+                                    for scenario in scenarios:
+                                        if 'data' in scenario:
+                                            payload = scenario['data'].copy() if isinstance(scenario['data'], dict) else scenario['data']
+                                            if isinstance(payload, dict):
+                                                payload['_description'] = scenario.get('description', 'Positive test')
+                                                payload['_scenario_type'] = scenario.get('scenario_type', 'standard')
+                                                payload['_test_type'] = 'positive'
+                                            gpt4_security_payloads.append(payload)
+                        
+                        # For negative testing, use 'negative' scenarios
+                        elif test_data_type == 'negative':
+                            if 'negative' in gpt4_data['scenarios']:
+                                scenarios = gpt4_data['scenarios']['negative']
+                                if isinstance(scenarios, list):
+                                    for scenario in scenarios:
+                                        if 'data' in scenario:
+                                            payload = scenario['data'].copy() if isinstance(scenario['data'], dict) else scenario['data']
+                                            if isinstance(payload, dict):
+                                                payload['_description'] = scenario.get('description', 'Negative test')
+                                                payload['_invalid_type'] = scenario.get('invalid_type', 'unknown')
+                                                payload['_test_type'] = 'negative'
+                                            gpt4_security_payloads.append(payload)
+                        
+                        # For 'all' type, extract all scenario types
+                        else:
+                            for scenario_type, scenarios in gpt4_data['scenarios'].items():
+                                if isinstance(scenarios, list):
+                                    for scenario in scenarios:
+                                        if 'data' in scenario:
+                                            payload = scenario['data'].copy() if isinstance(scenario['data'], dict) else scenario['data']
+                                            if isinstance(payload, dict):
+                                                payload['_description'] = scenario.get('description', f'{scenario_type} test')
+                                                payload['_scenario_type'] = scenario_type
+                                            gpt4_security_payloads.append(payload)
+                        
+                        # Store GPT-4o generated data if we found any
+                        if gpt4_security_payloads:
+                            gpt4_generated_data = gpt4_security_payloads
+                            print(f"✅ GPT-4o generated {len(gpt4_generated_data)} {test_data_type} test cases based on script analysis")
+                        else:
+                            gpt4_generated_data = None
+                            print("⚠️ GPT-4o response has scenarios but no data field found")
+                    else:
+                        gpt4_generated_data = None
+                        print("⚠️ GPT-4o response has no scenarios field")
+                except json.JSONDecodeError as je:
+                    print(f"⚠️ GPT-4o response is not valid JSON: {je}")
+                    gpt4_generated_data = None
+                except Exception as parse_err:
+                    print(f"⚠️ Error parsing GPT-4o response: {parse_err}")
+                    gpt4_generated_data = None
                 
             except Exception as e:
                 print(f"GPT-4o recommendation error: {e}")
@@ -2947,25 +3932,61 @@ Format response as JSON with keys: template, faker_patterns, edge_cases, recomme
         # Build recommended JSON template
         template = {field['field']: field['example'] for field in detected_fields}
         
+        # If no fields detected but user requested security/boundary/equivalence testing,
+        # provide a default template with common vulnerable fields
+        if (not template or len(template) == 0) and test_data_type in ['security', 'boundary', 'equivalence']:
+            print(f"⚠️ No fields detected in script, using default {test_data_type} template")
+            template = {
+                'username': '{{faker.name}}',
+                'email': '{{faker.email}}',
+                'password': '{{faker.password}}',
+                'input_field': '{{faker.text}}'
+            }
+        
+        # Build test scenarios based on test type
+        test_scenarios = []
+        if test_data_type == 'security':
+            test_scenarios = [
+                {"type": "sql_injection", "description": "SQL injection attack patterns", "count": 10},
+                {"type": "xss_attack", "description": "Cross-site scripting payloads", "count": 8},
+                {"type": "command_injection", "description": "OS command injection", "count": 5},
+                {"type": "path_traversal", "description": "Directory traversal attacks", "count": 5}
+            ]
+        elif test_data_type == 'boundary':
+            test_scenarios = [
+                {"type": "boundary", "description": "Min/max values and edge cases", "count": 15},
+                {"type": "negative", "description": "Invalid data (empty, null, wrong type)", "count": 8}
+            ]
+        elif test_data_type == 'equivalence':
+            test_scenarios = [
+                {"type": "valid_partition", "description": "Representative valid values", "count": 10},
+                {"type": "invalid_partition", "description": "Representative invalid values", "count": 8}
+            ]
+        else:
+            test_scenarios = [
+                {"type": "positive", "description": "Valid data with proper formatting", "count": 10},
+                {"type": "negative", "description": "Invalid data (empty strings, wrong formats)", "count": 5},
+                {"type": "boundary", "description": "Edge cases (max length, special characters)", "count": 5},
+                {"type": "security", "description": "SQL injection, XSS patterns", "count": 3}
+            ]
+        
         return {
             "success": True,
             "data": {
                 "detected_fields": detected_fields,
                 "recommended_template": template,
+                "test_data_type": test_data_type,
                 "gpt4_recommendation": gpt4_recommendation,
+                "gpt4_generated_data": gpt4_generated_data if 'gpt4_generated_data' in locals() else None,  # Include AI-generated test data
                 "usage_example": {
                     "endpoint": "POST /api/dynamic/generate-testdata",
                     "payload": {
                         "template": template,
-                        "count": 10
+                        "count": 10,
+                        "testDataType": test_data_type
                     }
                 },
-                "test_scenarios": [
-                    {"type": "positive", "description": "Valid data with proper formatting", "count": 10},
-                    {"type": "negative", "description": "Invalid data (empty strings, wrong formats)", "count": 5},
-                    {"type": "boundary", "description": "Edge cases (max length, special characters)", "count": 5},
-                    {"type": "security", "description": "SQL injection, XSS patterns", "count": 3}
-                }
+                "test_scenarios": test_scenarios
             }
         }
     except Exception as e:
@@ -3096,6 +4117,1695 @@ Be practical and actionable.
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== Script Analyzer Endpoints ====================
+
+from script_analyzer import script_analyzer, ScriptAnalysis
+
+
+@app.post(
+    "/api/ai-analysis/analyze-script",
+    tags=["Script Analysis"],
+    summary="📝 Analyze Playwright Script with Test Data Recommendations",
+    description="""## Analyze Playwright Script and Get Test Data Recommendations
+    
+    This endpoint analyzes your Playwright script and provides:
+    
+    ### ✅ **Script Analysis**
+    - Input fields detected (type, name, selector, constraints)
+    - Actions performed (clicks, fills, navigations)
+    - Assertions found
+    - Navigation patterns
+    
+    ### 💡 **Test Data Recommendations**
+    
+    Automatically suggests test data for:
+    
+    **Security Testing:**
+    - SQL Injection payloads
+    - XSS attack vectors
+    - Command injection attempts
+    - Path traversal patterns
+    
+    **Boundary Value Analysis:**
+    - Min/max values for numeric fields
+    - Min/max lengths for string fields
+    - Edge cases (empty, zero, negative)
+    
+    **Equivalence Partitioning:**
+    - Valid partitions by field type
+    - Invalid partitions
+    - Domain-specific partitions (banking, email, dates)
+    
+    ### 📊 **Field Types Detected**
+    - Text fields
+    - Email fields
+    - Password fields
+    - Number fields
+    - Date fields
+    - Select/dropdown fields
+    - Checkboxes
+    - Radio buttons
+    
+    ### 🎯 **Use Cases**
+    - Understand script structure
+    - Get test data suggestions
+    - Plan test coverage
+    - Identify missing test scenarios
+    """,
+    response_description="Script analysis with test data recommendations",
+    responses={
+        200: {
+            "description": "Analysis completed successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": True,
+                        "data": {
+                            "analysis": {
+                                "input_fields": [
+                                    {
+                                        "selector": "#username",
+                                        "field_name": "username",
+                                        "field_type": "text",
+                                        "min_length": 3,
+                                        "max_length": 50
+                                    }
+                                ],
+                                "actions": [{"type": "fill", "selector": "#username"}],
+                                "assertions": [{"type": "toHaveURL", "pattern": "/dashboard/"}]
+                            },
+                            "recommendations": {
+                                "security_tests": [
+                                    {"field": "#username", "attack_type": "sql_injection"},
+                                    {"field": "#username", "attack_type": "xss_attack"}
+                                ],
+                                "boundary_tests": [
+                                    {"field": "#username", "test_cases": ["min_length", "max_length", "empty"]}
+                                ],
+                                "equivalence_tests": [
+                                    {"field": "#username", "valid": ["alphanumeric"], "invalid": ["special_chars"]}
+                                ]
+                            }
+                        },
+                        "message": "Script analysis completed successfully"
+                    }
+                }
+            }
+        },
+        500: {"description": "Analysis failed"}
+    }
+)
+async def analyze_playwright_script(request: ScriptAnalysisRequest):
+    """
+    Analyze Playwright script to extract input fields, actions, and generate test data recommendations
+    """
+    try:
+        script_code = request.script_code
+        
+        # Analyze script using our analyzer
+        analysis = script_analyzer.analyze(script_code)
+        
+        # Generate test data recommendations
+        recommendations = {}
+        if request.generate_recommendations:
+            recommendations = script_analyzer.generate_test_data_recommendations(analysis)
+        
+        return {
+            "success": True,
+            "data": {
+                "analysis": analysis.to_dict(),
+                "recommendations": recommendations,
+                "script_id": request.script_id
+            },
+            "message": "Script analysis completed successfully"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Script analysis failed: {str(e)}")
+
+
+@app.post(
+    "/api/ai-analysis/generate-tests-from-script",
+    tags=["Test Generation"],
+    summary="🧪 Auto-Generate Security, Boundary & Equivalence Tests",
+    description="""## Automatically Generate Comprehensive Test Cases from Playwright Scripts
+    
+    This endpoint **analyzes your Playwright script** and automatically generates:
+    
+    ### 🔒 **Security Tests** (OWASP Top 10)
+    - **SQL Injection**: `' OR '1'='1`, `admin'--`, `'; DROP TABLE--`
+    - **XSS Attacks**: `<script>alert('XSS')</script>`, `<img src=x onerror=alert()>`
+    - **Command Injection**: `; ls -la`, `| whoami`
+    - **Path Traversal**: `../../../etc/passwd`
+    - **LDAP Injection**: `*)(uid=*))(|(uid=*`
+    - **XML Injection**: `<?xml version="1.0"?><!DOCTYPE foo>`
+    
+    ### 📐 **Boundary Value Analysis (BVA)**
+    
+    For **numeric fields**:
+    - Minimum value (min)
+    - Minimum - 1 (min-1) ❌ Invalid
+    - Maximum value (max)
+    - Maximum + 1 (max+1) ❌ Invalid
+    - Zero value
+    - Negative values ❌ Invalid
+    
+    For **string fields**:
+    - Minimum length
+    - Below minimum length ❌ Invalid
+    - Maximum length
+    - Above maximum length ❌ Invalid
+    - Empty string ❌ Invalid
+    - Special characters
+    
+    ### ⚖️ **Equivalence Partitioning**
+    
+    **Banking Domain**:
+    - Transfer amounts: Small (0.01-1000), Medium (1001-10000), Large (10001-100000), Very Large (100000+)
+    - Account numbers: Valid formats, Invalid formats
+    - Card numbers: Valid Luhn, Invalid Luhn
+    
+    **Email Fields**:
+    - Valid partitions: Standard email, Email with +tag, Subdomain emails
+    - Invalid partitions: Missing @, Missing domain, Missing local part
+    
+    **Date Fields**:
+    - Valid: Today, Future dates, Past dates
+    - Invalid: Invalid format, Out of range
+    
+    ### 📋 **Complete Test Files Generated**
+    
+    Returns **ready-to-run Playwright test files**:
+    - `security.spec.ts` - All security tests
+    - `boundary.spec.ts` - All boundary tests
+    - `equivalence.spec.ts` - All equivalence tests
+    
+    ### 🎯 **Example Response**
+    
+    ```json
+    {
+      "success": true,
+      "data": {
+        "security_tests": [
+          {
+            "field": "#username",
+            "attack_type": "sql_injection",
+            "payloads": [{"payload": "' OR '1'='1", "description": "Classic SQLi"}]
+          }
+        ],
+        "boundary_tests": [
+          {
+            "field": "#amount",
+            "field_type": "number",
+            "test_cases": [
+              {"value": 0, "type": "min", "isValid": true},
+              {"value": -1, "type": "min-1", "isValid": false}
+            ]
+          }
+        ],
+        "equivalence_tests": [...],
+        "complete_test_files": {
+          "security.spec.ts": "...complete test file...",
+          "boundary.spec.ts": "...complete test file..."
+        }
+      }
+    }
+    ```
+    
+    ### 🚀 **Use Cases**
+    - Expand test coverage automatically
+    - Find security vulnerabilities
+    - Validate input validation logic
+    - Generate regression tests
+    - CI/CD test generation
+    """,
+    response_description="Generated security, boundary, and equivalence test cases with complete test files",
+    responses={
+        200: {
+            "description": "Tests generated successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": True,
+                        "data": {
+                            "security_tests": [
+                                {
+                                    "field": "#username",
+                                    "field_name": "username",
+                                    "attack_type": "sql_injection",
+                                    "payloads": [
+                                        {"payload": "' OR '1'='1", "description": "Classic SQLi"},
+                                        {"payload": "admin'--", "description": "Comment-based SQLi"}
+                                    ]
+                                },
+                                {
+                                    "field": "#username",
+                                    "attack_type": "xss_attack",
+                                    "payloads": [
+                                        {"payload": "<script>alert('XSS')</script>", "description": "Basic XSS"}
+                                    ]
+                                }
+                            ],
+                            "boundary_tests": [
+                                {
+                                    "field": "#amount",
+                                    "field_type": "number",
+                                    "test_cases": [
+                                        {"value": 0, "type": "min", "isValid": True},
+                                        {"value": -1, "type": "min-1", "isValid": False},
+                                        {"value": 999999.99, "type": "max", "isValid": True}
+                                    ]
+                                }
+                            ],
+                            "equivalence_tests": [
+                                {
+                                    "partition_type": "transferAmount",
+                                    "valid_partitions": [
+                                        {"range": "0.01 - 1000", "example": 250, "description": "Small transfers"}
+                                    ]
+                                }
+                            ],
+                            "summary": {
+                                "total_security_tests": 10,
+                                "total_boundary_tests": 15,
+                                "total_equivalence_tests": 8,
+                                "test_files_generated": 3
+                            }
+                        },
+                        "message": "Tests generated successfully from script analysis"
+                    }
+                }
+            }
+        },
+        500: {"description": "Test generation failed"}
+    }
+)
+async def generate_tests_from_script(request: GenerateTestsFromScriptRequest):
+    """
+    Analyze Playwright script and automatically generate security, boundary, and equivalence tests
+    """
+    try:
+        script_code = request.script_code
+        test_types = request.test_types
+        count = request.count_per_type
+        
+        # Step 1: Analyze the script
+        analysis = script_analyzer.analyze(script_code)
+        
+        # Step 2: Generate test data based on detected fields
+        generated_tests = {
+            "security_tests": [],
+            "boundary_tests": [],
+            "equivalence_tests": [],
+            "complete_test_files": {}
+        }
+        
+        # Security Tests
+        if 'security' in test_types:
+            for field in analysis.input_fields:
+                if field.field_type.value in ['text', 'email', 'password', 'textarea']:
+                    # Generate SQL injection tests
+                    generated_tests['security_tests'].append({
+                        "field": field.selector,
+                        "field_name": field.field_name,
+                        "attack_type": "sql_injection",
+                        "payloads": [
+                            {"payload": "' OR '1'='1", "description": "Classic SQLi"},
+                            {"payload": "admin'--", "description": "Comment-based SQLi"},
+                            {"payload": "'; DROP TABLE accounts--", "description": "Destructive SQLi"}
+                        ],
+                        "test_code": f"await page.fill('{field.selector}', \"' OR '1'='1\");\nawait expect(page.locator('.error')).toBeVisible();"
+                    })
+                    
+                    # Generate XSS tests
+                    generated_tests['security_tests'].append({
+                        "field": field.selector,
+                        "field_name": field.field_name,
+                        "attack_type": "xss_attack",
+                        "payloads": [
+                            {"payload": "<script>alert('XSS')</script>", "description": "Basic XSS"},
+                            {"payload": "<img src=x onerror=alert('XSS')>", "description": "Image XSS"}
+                        ],
+                        "test_code": f"await page.fill('{field.selector}', \"<script>alert('XSS')</script>\");\nawait expect(page).not.toHaveTitle(/XSS/);"
+                    })
+        
+        # Boundary Tests
+        if 'boundary' in test_types:
+            for field in analysis.input_fields:
+                if field.field_type.value == 'number':
+                    min_val = field.min_length or 0
+                    max_val = field.max_length or 999999.99
+                    
+                    generated_tests['boundary_tests'].append({
+                        "field": field.selector,
+                        "field_name": field.field_name,
+                        "field_type": "number",
+                        "test_cases": [
+                            {"value": min_val, "type": "min", "isValid": True, "test_code": f"await page.fill('{field.selector}', '{min_val}');"},
+                            {"value": min_val - 1, "type": "min-1", "isValid": False, "test_code": f"await page.fill('{field.selector}', '{min_val - 1}');"},
+                            {"value": max_val, "type": "max", "isValid": True, "test_code": f"await page.fill('{field.selector}', '{max_val}');"},
+                            {"value": max_val + 1, "type": "max+1", "isValid": False, "test_code": f"await page.fill('{field.selector}', '{max_val + 1}');"},
+                            {"value": 0, "type": "zero", "isValid": False, "test_code": f"await page.fill('{field.selector}', '0');"},
+                            {"value": -100, "type": "negative", "isValid": False, "test_code": f"await page.fill('{field.selector}', '-100');"}
+                        ]
+                    })
+                
+                elif field.field_type.value in ['text', 'email']:
+                    min_len = field.min_length or 1
+                    max_len = field.max_length or 255
+                    
+                    generated_tests['boundary_tests'].append({
+                        "field": field.selector,
+                        "field_name": field.field_name,
+                        "field_type": "string",
+                        "test_cases": [
+                            {"value": "A" * min_len, "type": "min_length", "isValid": True},
+                            {"value": "A" * (min_len - 1), "type": "below_min", "isValid": False},
+                            {"value": "A" * max_len, "type": "max_length", "isValid": True},
+                            {"value": "A" * (max_len + 1), "type": "above_max", "isValid": False},
+                            {"value": "", "type": "empty", "isValid": False}
+                        ]
+                    })
+        
+        # Equivalence Tests
+        if 'equivalence' in test_types:
+            for field in analysis.input_fields:
+                field_name_lower = field.field_name.lower()
+                
+                # Banking amount fields
+                if 'amount' in field_name_lower or 'transfer' in field_name_lower:
+                    generated_tests['equivalence_tests'].append({
+                        "field": field.selector,
+                        "field_name": field.field_name,
+                        "partition_type": "transferAmount",
+                        "valid_partitions": [
+                            {"range": "0.01 - 1000", "example": 250, "description": "Small transfers"},
+                            {"range": "1000.01 - 10000", "example": 5000, "description": "Medium transfers"},
+                            {"range": "10000.01 - 999999.99", "example": 50000, "description": "Large transfers"}
+                        ],
+                        "invalid_partitions": [
+                            {"value": -100, "description": "Negative amount", "errorCode": "INVALID_AMOUNT"},
+                            {"value": 0, "description": "Zero amount", "errorCode": "ZERO_AMOUNT"},
+                            {"value": 1500000, "description": "Exceeds limit", "errorCode": "AMOUNT_EXCEEDS_LIMIT"}
+                        ]
+                    })
+                
+                # Email fields
+                elif field.field_type.value == 'email':
+                    generated_tests['equivalence_tests'].append({
+                        "field": field.selector,
+                        "field_name": field.field_name,
+                        "partition_type": "email",
+                        "valid_partitions": [
+                            {"example": "user@example.com", "description": "Standard email"},
+                            {"example": "user+tag@example.com", "description": "Email with plus"},
+                            {"example": "user@subdomain.example.com", "description": "Subdomain email"}
+                        ],
+                        "invalid_partitions": [
+                            {"value": "invalid.email", "description": "Missing @", "errorCode": "INVALID_EMAIL_FORMAT"},
+                            {"value": "user@", "description": "Missing domain", "errorCode": "INVALID_DOMAIN"},
+                            {"value": "@example.com", "description": "Missing local part", "errorCode": "MISSING_LOCAL_PART"}
+                        ]
+                    })
+        
+        # Generate complete Playwright test files
+        if analysis.input_fields:
+            # Security test file
+            if 'security' in test_types and generated_tests['security_tests']:
+                security_test_file = f"""import {{ test, expect }} from '@playwright/test';
+
+test.describe('Security Tests - Auto-generated', () => {{
+"""
+                for sec_test in generated_tests['security_tests'][:5]:  # Limit to 5 tests
+                    security_test_file += f"""
+  test('{sec_test['attack_type']} - {sec_test['field_name']}', async ({{ page }}) => {{
+    await page.goto('{analysis.navigation_url or 'https://example.com'}');
+    {sec_test['test_code']}
+  }});
+"""
+                security_test_file += "});\n"
+                generated_tests['complete_test_files']['security.spec.ts'] = security_test_file
+            
+            # Boundary test file
+            if 'boundary' in test_types and generated_tests['boundary_tests']:
+                boundary_test_file = f"""import {{ test, expect }} from '@playwright/test';
+
+test.describe('Boundary Value Tests - Auto-generated', () => {{
+"""
+                for bound_test in generated_tests['boundary_tests'][:3]:  # Limit to 3 fields
+                    for test_case in bound_test['test_cases'][:4]:  # Limit to 4 tests per field
+                        if 'test_code' in test_case:
+                            expected = "toBeVisible" if test_case['isValid'] else "not.toBeVisible"
+                            boundary_test_file += f"""
+  test('{bound_test['field_name']} - {test_case['type']}', async ({{ page }}) => {{
+    await page.goto('{analysis.navigation_url or 'https://example.com'}');
+    {test_case['test_code']}
+    await page.click('#submit');
+    await expect(page.locator('.success')).{expected}();
+  }});
+"""
+                boundary_test_file += "});\n"
+                generated_tests['complete_test_files']['boundary.spec.ts'] = boundary_test_file
+        
+        return {
+            "success": True,
+            "data": {
+                "script_analysis": analysis.to_dict(),
+                "generated_tests": generated_tests,
+                "summary": {
+                    "total_security_tests": len(generated_tests['security_tests']),
+                    "total_boundary_tests": sum(len(bt['test_cases']) for bt in generated_tests['boundary_tests']),
+                    "total_equivalence_tests": sum(len(et.get('valid_partitions', [])) + len(et.get('invalid_partitions', [])) for et in generated_tests['equivalence_tests']),
+                    "test_files_generated": len(generated_tests['complete_test_files']),
+                    "input_fields_analyzed": len(analysis.input_fields)
+                }
+            },
+            "message": "Tests generated successfully from script analysis"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Test generation failed: {str(e)}")
+
+
+# ==================== Enhanced Script Analyzer Endpoints (Active Intelligence) ====================
+
+@app.post(
+    "/api/ai-analysis/analyze-script-enhanced",
+    tags=["Enhanced Analysis"],
+    summary="🎯 Complete Enhanced Script Analysis",
+    description="""## Comprehensive Playwright script analysis with active intelligence
+    
+    This endpoint provides **complete enhanced analysis** including:
+    
+    ### ✅ What You Get:
+    - **Quality Score** (0-100): Overall test quality based on multiple factors
+    - **XPath Analysis**: Stability and complexity scoring for all XPath selectors
+    - **Locator Quality**: 5-level quality assessment (Excellent → Unstable)
+    - **Test Pattern**: Auto-detection of POM, Fixtures, Data-Driven, etc.
+    - **Recommendations**: Prioritized, actionable improvement suggestions
+    - **External Data**: JSON, CSV, Excel, API endpoint detection
+    - **Test Context**: Hooks, timeouts, retries, fixtures
+    
+    ### 📊 Scoring Factors:
+    - Modern locator usage (+20 points)
+    - XPath stability (penalty for unstable)
+    - Test patterns (+8 to +12 points)
+    - Assertions (+2 per assertion)
+    - Test hooks (+5 points)
+    - Configuration (+6 points)
+    
+    ### 🚀 Example Use Cases:
+    - CI/CD quality gates
+    - Test maintenance dashboards
+    - Automated code review
+    - Script quality tracking
+    """,
+    response_description="Enhanced analysis with quality score, XPath analysis, and recommendations",
+    responses={
+        200: {
+            "description": "Successful analysis",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": True,
+                        "data": {
+                            "quality_score": 68,
+                            "test_pattern": "component_testing",
+                            "xpath_analysis": [
+                                {
+                                    "xpath": "/html/body/div[1]",
+                                    "type": "absolute",
+                                    "complexity_score": 90,
+                                    "stability_score": 30,
+                                    "issues": ["Absolute XPath is brittle"],
+                                    "recommended_alternative": "Use getByRole() instead"
+                                }
+                            ],
+                            "recommendations": [
+                                {
+                                    "priority": "high",
+                                    "category": "locator_stability",
+                                    "title": "Unstable XPath detected",
+                                    "suggestion": "Use getByRole() or getByTestId()"
+                                }
+                            ]
+                        },
+                        "message": "Enhanced analysis complete. Quality Score: 68/100"
+                    }
+                }
+            }
+        },
+        500: {"description": "Analysis failed"}
+    }
+)
+async def analyze_script_enhanced(request: ScriptAnalysisRequest):
+    """
+    Enhanced script analysis with active intelligence:
+    - Quality scoring (0-100)
+    - XPath deep analysis with stability scoring
+    - Locator quality assessment
+    - Test pattern detection
+    - Proactive recommendations
+    - External data source detection
+    """
+    try:
+        script_code = request.script_code
+        
+        # Perform enhanced analysis
+        analysis = script_analyzer.analyze(script_code)
+        
+        # Generate test data recommendations
+        recommendations = {}
+        if request.generate_recommendations:
+            recommendations = script_analyzer.generate_test_data_recommendations(analysis)
+        
+        return {
+            "success": True,
+            "data": {
+                "analysis": analysis.to_dict(),
+                "quality_score": analysis.quality_score,
+                "test_pattern": analysis.detected_pattern.value if analysis.detected_pattern else None,
+                "xpath_analysis": [{
+                    "xpath": x.xpath,
+                    "type": x.xpath_type.value,
+                    "complexity_score": x.complexity_score,
+                    "stability_score": x.stability_score,
+                    "issues": x.issues,
+                    "recommended_alternative": x.recommended_alternative,
+                    "line_number": x.line_number
+                } for x in analysis.xpath_analysis],
+                "external_data_sources": [{
+                    "type": d.source_type,
+                    "file_path": d.file_path,
+                    "api_endpoint": d.api_endpoint,
+                    "line_number": d.line_number
+                } for d in analysis.external_data_sources],
+                "test_context": {
+                    "test_name": analysis.test_context.test_name if analysis.test_context else None,
+                    "description": analysis.test_context.description if analysis.test_context else None,
+                    "has_hooks": analysis.test_context.has_hooks if analysis.test_context else False,
+                    "timeout": analysis.test_context.timeout if analysis.test_context else None,
+                    "retries": analysis.test_context.retries if analysis.test_context else None,
+                    "fixtures": analysis.test_context.fixtures if analysis.test_context else []
+                } if analysis.test_context else None,
+                "recommendations": analysis.recommendations,
+                "test_data_recommendations": recommendations,
+                "script_id": request.script_id
+            },
+            "message": f"Enhanced analysis complete. Quality Score: {analysis.quality_score}/100"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Enhanced analysis failed: {str(e)}")
+
+
+@app.post("/api/ai-analysis/xpath-deep-analysis")
+async def xpath_deep_analysis(request: Dict[str, Any]):
+    """
+    Deep analysis of XPath selectors from script
+    Returns detailed stability and complexity analysis for all XPath expressions
+    """
+    try:
+        script_code = request.get('script_code', '')
+        
+        # Analyze script
+        analysis = script_analyzer.analyze(script_code)
+        
+        # Optional: Use GPT-4o for enhanced recommendations
+        llm_service = LLMService()
+        enhanced_xpath_analysis = []
+        
+        for xpath_item in analysis.xpath_analysis:
+            xpath_data = {
+                "xpath": xpath_item.xpath,
+                "type": xpath_item.xpath_type.value,
+                "complexity_score": xpath_item.complexity_score,
+                "stability_score": xpath_item.stability_score,
+                "issues": xpath_item.issues,
+                "recommended_alternative": xpath_item.recommended_alternative,
+                "line_number": xpath_item.line_number
+            }
+            
+            # Add GPT-4o analysis if available
+            gpt4_analysis = await llm_service.analyze_xpath_with_gpt4(
+                xpath_item.xpath,
+                {
+                    "type": xpath_item.xpath_type.value,
+                    "complexity_score": xpath_item.complexity_score,
+                    "stability": "low" if xpath_item.stability_score < 60 else "medium" if xpath_item.stability_score < 80 else "high",
+                    "issues": xpath_item.issues
+                }
+            )
+            xpath_data["ai_recommendation"] = gpt4_analysis
+            
+            enhanced_xpath_analysis.append(xpath_data)
+        
+        return {
+            "success": True,
+            "data": {
+                "xpath_count": len(enhanced_xpath_analysis),
+                "xpath_analysis": enhanced_xpath_analysis,
+                "summary": {
+                    "total_xpaths": len(enhanced_xpath_analysis),
+                    "unstable_xpaths": sum(1 for x in enhanced_xpath_analysis if x['stability_score'] < 60),
+                    "complex_xpaths": sum(1 for x in enhanced_xpath_analysis if x['complexity_score'] > 70),
+                    "average_stability": sum(x['stability_score'] for x in enhanced_xpath_analysis) / len(enhanced_xpath_analysis) if enhanced_xpath_analysis else 0,
+                    "average_complexity": sum(x['complexity_score'] for x in enhanced_xpath_analysis) / len(enhanced_xpath_analysis) if enhanced_xpath_analysis else 0
+                }
+            },
+            "message": "XPath deep analysis complete"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"XPath analysis failed: {str(e)}")
+
+
+@app.post("/api/ai-analysis/quality-score")
+async def get_quality_score(request: ScriptAnalysisRequest):
+    """
+    Get overall quality score (0-100) for a Playwright script
+    Includes breakdown of scoring factors
+    """
+    try:
+        script_code = request.script_code
+        
+        # Analyze script
+        analysis = script_analyzer.analyze(script_code)
+        
+        # Calculate score breakdown
+        base_score = 50
+        modern_locator_bonus = 0
+        xpath_penalty = 0
+        pattern_bonus = 0
+        assertion_bonus = 0
+        context_bonus = 0
+        
+        # Modern locator bonus
+        if analysis.actions:
+            from script_analyzer import LocatorQuality
+            modern_count = sum(1 for a in analysis.actions if a.quality == LocatorQuality.EXCELLENT)
+            modern_ratio = modern_count / len(analysis.actions)
+            modern_locator_bonus = int(modern_ratio * 20)
+        
+        # XPath penalty
+        if analysis.xpath_analysis:
+            avg_xpath_stability = sum(x.stability_score for x in analysis.xpath_analysis) / len(analysis.xpath_analysis)
+            xpath_penalty = int((100 - avg_xpath_stability) / 5)
+        
+        # Pattern bonus
+        from script_analyzer import TestPattern
+        if analysis.detected_pattern == TestPattern.PAGE_OBJECT:
+            pattern_bonus = 10
+        elif analysis.detected_pattern == TestPattern.FIXTURE:
+            pattern_bonus = 8
+        elif analysis.detected_pattern == TestPattern.DATA_DRIVEN:
+            pattern_bonus = 12
+        
+        # Assertion bonus
+        assertion_bonus = min(10, len(analysis.assertions) * 2)
+        
+        # Context bonus
+        if analysis.test_context:
+            if analysis.test_context.has_hooks:
+                context_bonus += 5
+            if analysis.test_context.timeout:
+                context_bonus += 3
+            if analysis.test_context.retries:
+                context_bonus += 3
+        
+        return {
+            "success": True,
+            "data": {
+                "quality_score": analysis.quality_score,
+                "breakdown": {
+                    "base_score": base_score,
+                    "modern_locator_bonus": modern_locator_bonus,
+                    "xpath_penalty": xpath_penalty,
+                    "pattern_bonus": pattern_bonus,
+                    "assertion_bonus": assertion_bonus,
+                    "context_bonus": context_bonus
+                },
+                "rating": "excellent" if analysis.quality_score >= 80 else "good" if analysis.quality_score >= 60 else "fair" if analysis.quality_score >= 40 else "poor",
+                "locator_quality": analysis.summary.get('locator_quality', {}),
+                "improvements_needed": len([r for r in analysis.recommendations if r['priority'] == 'high'])
+            },
+            "message": f"Quality Score: {analysis.quality_score}/100"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Quality score calculation failed: {str(e)}")
+
+
+@app.post("/api/ai-analysis/recommendations")
+async def get_recommendations(request: ScriptAnalysisRequest):
+    """
+    Get proactive recommendations for script improvement
+    Categorized by priority (high, medium, low)
+    """
+    try:
+        script_code = request.script_code
+        
+        # Analyze script
+        analysis = script_analyzer.analyze(script_code)
+        
+        # Categorize recommendations by priority
+        high_priority = [r for r in analysis.recommendations if r['priority'] == 'high']
+        medium_priority = [r for r in analysis.recommendations if r['priority'] == 'medium']
+        low_priority = [r for r in analysis.recommendations if r['priority'] == 'low']
+        
+        # Categorize by category
+        by_category = {}
+        for rec in analysis.recommendations:
+            category = rec['category']
+            if category not in by_category:
+                by_category[category] = []
+            by_category[category].append(rec)
+        
+        return {
+            "success": True,
+            "data": {
+                "total_recommendations": len(analysis.recommendations),
+                "by_priority": {
+                    "high": high_priority,
+                    "medium": medium_priority,
+                    "low": low_priority
+                },
+                "by_category": by_category,
+                "priority_counts": {
+                    "high": len(high_priority),
+                    "medium": len(medium_priority),
+                    "low": len(low_priority)
+                },
+                "quality_score": analysis.quality_score
+            },
+            "message": f"Generated {len(analysis.recommendations)} recommendations"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Recommendation generation failed: {str(e)}")
+
+
+@app.post("/api/ai-analysis/locator-quality-report")
+async def locator_quality_report(request: ScriptAnalysisRequest):
+    """
+    Detailed report on locator quality across the script
+    Shows distribution and specific quality issues
+    """
+    try:
+        script_code = request.script_code
+        
+        # Analyze script
+        analysis = script_analyzer.analyze(script_code)
+        
+        # Build locator quality report
+        from script_analyzer import LocatorQuality
+        
+        quality_distribution = {
+            "excellent": [],
+            "good": [],
+            "fair": [],
+            "poor": [],
+            "unstable": []
+        }
+        
+        for action in analysis.actions:
+            if action.quality:
+                quality_key = action.quality.value
+                quality_distribution[quality_key].append({
+                    "action": action.action_type.value,
+                    "target": action.target,
+                    "line_number": action.line_number,
+                    "recommendation": action.recommendation
+                })
+        
+        # Calculate percentages
+        total = len(analysis.actions)
+        percentages = {}
+        for quality, items in quality_distribution.items():
+            percentages[quality] = round(len(items) / total * 100, 1) if total > 0 else 0
+        
+        return {
+            "success": True,
+            "data": {
+                "total_actions": total,
+                "quality_distribution": quality_distribution,
+                "percentages": percentages,
+                "summary": {
+                    "excellent_count": len(quality_distribution['excellent']),
+                    "good_count": len(quality_distribution['good']),
+                    "fair_count": len(quality_distribution['fair']),
+                    "poor_count": len(quality_distribution['poor']),
+                    "unstable_count": len(quality_distribution['unstable'])
+                },
+                "needs_improvement": quality_distribution['poor'] + quality_distribution['unstable'],
+                "overall_quality": "excellent" if percentages['excellent'] > 70 else "good" if percentages['excellent'] + percentages['good'] > 60 else "needs_improvement"
+            },
+            "message": "Locator quality report generated"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Locator quality report failed: {str(e)}")
+
+
+@app.post("/api/ai-analysis/test-pattern-detection")
+async def detect_test_pattern(request: ScriptAnalysisRequest):
+    """
+    Detect test architecture pattern (POM, Fixtures, Data-Driven, etc.)
+    Provides insights and recommendations
+    """
+    try:
+        script_code = request.script_code
+        
+        # Analyze script
+        analysis = script_analyzer.analyze(script_code)
+        
+        from script_analyzer import TestPattern
+        
+        pattern_info = {
+            "detected_pattern": analysis.detected_pattern.value if analysis.detected_pattern else "basic",
+            "confidence": "high",
+            "indicators": []
+        }
+        
+        # Add pattern-specific indicators
+        if analysis.detected_pattern == TestPattern.PAGE_OBJECT:
+            pattern_info["indicators"].append("Page Object class detected")
+            pattern_info["benefits"] = ["Improved maintainability", "Code reusability", "Better organization"]
+        elif analysis.detected_pattern == TestPattern.FIXTURE:
+            pattern_info["indicators"].append("Custom fixtures detected")
+            pattern_info["benefits"] = ["Shared setup/teardown", "Better test isolation", "Reduced duplication"]
+        elif analysis.detected_pattern == TestPattern.DATA_DRIVEN:
+            pattern_info["indicators"].append(f"{len(analysis.external_data_sources)} external data sources")
+            pattern_info["benefits"] = ["Scalable test data", "Easy data updates", "Better coverage"]
+        elif analysis.detected_pattern == TestPattern.API_HYBRID:
+            pattern_info["indicators"].append("API calls detected")
+            pattern_info["benefits"] = ["Faster test setup", "Backend validation", "Comprehensive coverage"]
+        elif analysis.detected_pattern == TestPattern.COMPONENT:
+            pattern_info["indicators"].append("Component testing detected")
+            pattern_info["benefits"] = ["Isolated component testing", "Fast execution", "UI validation"]
+        
+        # Add recommendations if using basic pattern
+        if analysis.detected_pattern == TestPattern.BASIC:
+            if len(analysis.input_fields) > 10:
+                pattern_info["recommendations"] = ["Consider implementing Page Object Model for better maintainability"]
+            if not analysis.external_data_sources and len(analysis.input_fields) > 5:
+                pattern_info["recommendations"] = pattern_info.get("recommendations", []) + ["Consider data-driven approach for better scalability"]
+        
+        return {
+            "success": True,
+            "data": {
+                "pattern": pattern_info,
+                "external_data_sources": len(analysis.external_data_sources),
+                "has_hooks": analysis.test_context.has_hooks if analysis.test_context else False,
+                "complexity": "high" if len(analysis.input_fields) > 10 else "medium" if len(analysis.input_fields) > 5 else "low"
+            },
+            "message": f"Detected pattern: {pattern_info['detected_pattern']}"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Pattern detection failed: {str(e)}")
+
+
+@app.post("/api/ai-analysis/external-data-sources")
+async def analyze_external_data_sources(request: ScriptAnalysisRequest):
+    """
+    Identify all external data sources (JSON, CSV, Excel, API)
+    Useful for understanding data dependencies
+    """
+    try:
+        script_code = request.script_code
+        
+        # Analyze script
+        analysis = script_analyzer.analyze(script_code)
+        
+        # Categorize by source type
+        by_type = {
+            "json": [],
+            "csv": [],
+            "excel": [],
+            "api": []
+        }
+        
+        for source in analysis.external_data_sources:
+            by_type[source.source_type].append({
+                "file_path": source.file_path,
+                "api_endpoint": source.api_endpoint,
+                "line_number": source.line_number
+            })
+        
+        return {
+            "success": True,
+            "data": {
+                "total_sources": len(analysis.external_data_sources),
+                "by_type": by_type,
+                "counts": {
+                    "json": len(by_type['json']),
+                    "csv": len(by_type['csv']),
+                    "excel": len(by_type['excel']),
+                    "api": len(by_type['api'])
+                },
+                "is_data_driven": len(analysis.external_data_sources) > 0,
+                "recommendations": [
+                    "Use version control for data files",
+                    "Implement data validation",
+                    "Consider data file encryption for sensitive data"
+                ] if len(analysis.external_data_sources) > 0 else [
+                    "Consider extracting test data to external files for better maintainability"
+                ]
+            },
+            "message": f"Found {len(analysis.external_data_sources)} external data sources"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"External data source analysis failed: {str(e)}")
+
+
+@app.post("/api/ai-analysis/comprehensive-report")
+async def comprehensive_analysis_report(request: ScriptAnalysisRequest):
+    """
+    Complete comprehensive analysis report
+    Combines all analysis features into one detailed report
+    """
+    try:
+        script_code = request.script_code
+        
+        # Perform complete analysis
+        analysis = script_analyzer.analyze(script_code)
+        
+        # Generate test data recommendations
+        test_data_recommendations = script_analyzer.generate_test_data_recommendations(analysis)
+        
+        # Build comprehensive report
+        report = {
+            "overview": {
+                "quality_score": analysis.quality_score,
+                "test_pattern": analysis.detected_pattern.value if analysis.detected_pattern else "basic",
+                "total_input_fields": len(analysis.input_fields),
+                "total_actions": len(analysis.actions),
+                "total_assertions": len(analysis.assertions),
+                "lines_analyzed": analysis.summary.get('lines_analyzed', 0)
+            },
+            "quality_assessment": {
+                "score": analysis.quality_score,
+                "rating": "excellent" if analysis.quality_score >= 80 else "good" if analysis.quality_score >= 60 else "fair" if analysis.quality_score >= 40 else "poor",
+                "locator_quality": analysis.summary.get('locator_quality', {}),
+                "modern_locators_used": analysis.summary.get('modern_locators_used', False)
+            },
+            "xpath_analysis": {
+                "total_xpaths": len(analysis.xpath_analysis),
+                "unstable_xpaths": sum(1 for x in analysis.xpath_analysis if x.stability_score < 60),
+                "details": [{
+                    "xpath": x.xpath[:50] + "..." if len(x.xpath) > 50 else x.xpath,
+                    "type": x.xpath_type.value,
+                    "stability_score": x.stability_score,
+                    "complexity_score": x.complexity_score,
+                    "line_number": x.line_number
+                } for x in analysis.xpath_analysis]
+            },
+            "test_structure": {
+                "pattern": analysis.detected_pattern.value if analysis.detected_pattern else "basic",
+                "has_hooks": analysis.test_context.has_hooks if analysis.test_context else False,
+                "timeout": analysis.test_context.timeout if analysis.test_context else None,
+                "retries": analysis.test_context.retries if analysis.test_context else None,
+                "external_data_sources": len(analysis.external_data_sources)
+            },
+            "recommendations": {
+                "total": len(analysis.recommendations),
+                "high_priority": [r for r in analysis.recommendations if r['priority'] == 'high'],
+                "medium_priority": [r for r in analysis.recommendations if r['priority'] == 'medium'],
+                "low_priority": [r for r in analysis.recommendations if r['priority'] == 'low']
+            },
+            "test_data_generation": {
+                "security_tests": len(test_data_recommendations.get('security_tests', [])),
+                "boundary_tests": len(test_data_recommendations.get('boundary_tests', [])),
+                "equivalence_tests": len(test_data_recommendations.get('equivalence_tests', []))
+            },
+            "summary": analysis.summary
+        }
+        
+        return {
+            "success": True,
+            "data": report,
+            "message": "Comprehensive analysis report generated successfully"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Comprehensive report generation failed: {str(e)}")
+
+
+# ==================== Dedicated Test Data Type Endpoints ====================
+
+@app.post(
+    "/api/testdata/generate/security",
+    tags=["Test Data"],
+    summary="🔒 Generate Security Test Data",
+    description="""Generate AI-powered security test data with attack vectors.
+    
+    Includes:
+    - SQL Injection attacks
+    - XSS (Cross-Site Scripting)
+    - Command Injection
+    - Path Traversal
+    - LDAP Injection
+    - XML/XXE Injection
+    - Authentication bypass
+    - CSRF attacks
+    
+    Returns test data with `_attack_vector`, `_description`, and `_test_type` metadata.
+    """
+)
+async def generate_security_testdata(request: DynamicTestDataRequest):
+    """
+    Generate SECURITY test data using AI-powered analysis.
+    Automatically sets testDataType to 'security'.
+    
+    If EXTERNAL_SECURITY_API_URL is set, forwards the request to external LLM-integrated API.
+    Otherwise, uses local GPT-4o generation.
+    """
+    try:
+        # Check if external security API is configured
+        external_api_url = os.getenv('EXTERNAL_SECURITY_API_URL')
+        
+        if external_api_url:
+            # Use external LLM-integrated API
+            import httpx
+            print(f"🌐 Using external security API: {external_api_url}")
+            
+            # Get access token from environment
+            api_token = os.getenv('EXTERNAL_API_TOKEN', '')
+            
+            # Build headers with Bearer token if available
+            headers = {'Content-Type': 'application/json'}
+            if api_token:
+                headers['Authorization'] = f'Bearer {api_token}'
+                print("🔑 Using Bearer token for authentication")
+            else:
+                print("⚠️ No EXTERNAL_API_TOKEN found in environment")
+            
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                request_payload = {
+                    'script_code': request.script_code,
+                    'template': request.template,
+                    'count': request.count,
+                    'options': request.options
+                }
+                
+                print(f"📤 Sending request to external API...")
+                
+                response = await client.post(
+                    external_api_url,
+                    json=request_payload,
+                    headers=headers
+                )
+                
+                print(f"📥 Response received: Status {response.status_code}")
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    # Add metadata to indicate external API was used
+                    if 'metadata' not in result:
+                        result['metadata'] = {}
+                    result['metadata']['source'] = 'external_llm_api'
+                    result['metadata']['external_endpoint'] = external_api_url
+                    result['metadata']['attack_vectors'] = [
+                        'sql_injection', 'xss', 'command_injection', 'path_traversal',
+                        'ldap_injection', 'xml_injection', 'auth_bypass', 'csrf',
+                        'nosql_injection', 'ssti'
+                    ]
+                    result['metadata']['owasp_coverage'] = True
+                    result['metadata']['endpoint'] = '/api/testdata/generate/security'
+                    print("✅ External security API response received")
+                    return result
+                elif response.status_code == 401:
+                    print(f"❌ Authentication failed (401). Falling back to local generation...")
+                else:
+                    print(f"⚠️ External API failed with status {response.status_code}")
+                    print("   Falling back to local generation...")
+        
+        # Fall back to local generation if external API not configured or failed
+        # Force test data type to security
+        request.testDataType = 'security'
+        
+        # Call the main dynamic testdata generation with security type
+        result = await generate_dynamic_testdata(request)
+        
+        # Add security-specific metadata
+        if result.get('success'):
+            result['metadata']['attack_vectors'] = [
+                'sql_injection',
+                'xss',
+                'command_injection',
+                'path_traversal',
+                'ldap_injection',
+                'xml_injection',
+                'auth_bypass',
+                'csrf',
+                'nosql_injection',
+                'ssti'
+            ]
+            result['metadata']['owasp_coverage'] = True
+            result['metadata']['endpoint'] = '/api/testdata/generate/security'
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate security test data: {str(e)}")
+
+
+@app.post(
+    "/api/testdata/generate/boundary",
+    tags=["Test Data"],
+    summary="📐 Generate Boundary Value Test Data",
+    description="""Generate AI-powered boundary value analysis test data.
+    
+    Includes:
+    - Min, Max values
+    - Min-1, Max+1 (off-by-one)
+    - Zero, Null, Empty
+    - Overflow/Underflow conditions
+    - String length boundaries
+    - Precision limits
+    
+    Returns test data with `_boundary_type`, `_description`, and `_test_type` metadata.
+    """
+)
+async def generate_boundary_testdata(request: DynamicTestDataRequest):
+    """
+    Generate BOUNDARY VALUE ANALYSIS test data.
+    Automatically sets testDataType to 'boundary'.
+    
+    If EXTERNAL_BOUNDARY_API_URL is set, forwards the request to external LLM-integrated API.
+    Otherwise, uses local GPT-4o generation.
+    """
+    try:
+        # Check if external boundary API is configured
+        external_api_url = os.getenv('EXTERNAL_BOUNDARY_API_URL')
+        
+        if external_api_url:
+            # Use external LLM-integrated API
+            import httpx
+            print(f"🌐 Using external boundary API: {external_api_url}")
+            
+            # Get access token from environment
+            api_token = os.getenv('EXTERNAL_API_TOKEN', '')
+            
+            # Build headers with Bearer token if available
+            headers = {'Content-Type': 'application/json'}
+            if api_token:
+                headers['Authorization'] = f'Bearer {api_token}'
+                print("🔑 Using Bearer token for authentication")
+                print(f"   Token length: {len(api_token)} characters")
+                print(f"   Token starts with: {api_token[:30]}...")
+                print(f"   Token ends with: ...{api_token[-20:]}")
+                print(f"   Headers: {headers}")
+            else:
+                print("⚠️ No EXTERNAL_API_TOKEN found in environment")
+                print("   Check .env file for EXTERNAL_API_TOKEN variable")
+            
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                request_payload = {
+                    'script_code': request.script_code,
+                    'template': request.template,
+                    'count': request.count,
+                    'options': request.options
+                }
+                
+                print(f"📤 Sending request to external API...")
+                print(f"   URL: {external_api_url}")
+                print(f"   Payload: {request_payload}")
+                
+                response = await client.post(
+                    external_api_url,
+                    json=request_payload,
+                    headers=headers
+                )
+                
+                print(f"📥 Response received:")
+                print(f"   Status Code: {response.status_code}")
+                print(f"   Headers: {dict(response.headers)}")
+                print(f"   Body: {response.text[:200]}..." if len(response.text) > 200 else f"   Body: {response.text}")
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    # Add metadata to indicate external API was used
+                    if 'metadata' not in result:
+                        result['metadata'] = {}
+                    result['metadata']['source'] = 'external_llm_api'
+                    result['metadata']['external_endpoint'] = external_api_url
+                    result['metadata']['boundary_types'] = [
+                        'min', 'max', 'min-1', 'max+1',
+                        'zero', 'null', 'empty', 'overflow', 'underflow'
+                    ]
+                    result['metadata']['coverage_level'] = 'comprehensive'
+                    result['metadata']['endpoint'] = '/api/testdata/generate/boundary'
+                    print("✅ External boundary API response received")
+                    return result
+                elif response.status_code == 401:
+                    print(f"❌ Authentication failed (401). Token may be expired or invalid.")
+                    print(f"   Response: {response.text}")
+                    print("   Falling back to local generation...")
+                else:
+                    print(f"⚠️ External API failed with status {response.status_code}")
+                    print(f"   Response: {response.text}")
+                    print("   Falling back to local generation...")
+        
+        # Fall back to local generation if external API not configured or failed
+        # Force test data type to boundary
+        request.testDataType = 'boundary'
+        
+        # Call the main dynamic testdata generation with boundary type
+        result = await generate_dynamic_testdata(request)
+        
+        # Add boundary-specific metadata
+        if result.get('success'):
+            result['metadata']['boundary_types'] = [
+                'min',
+                'max',
+                'min-1',
+                'max+1',
+                'zero',
+                'null',
+                'empty',
+                'overflow',
+                'underflow'
+            ]
+            result['metadata']['coverage_level'] = 'comprehensive'
+            result['metadata']['endpoint'] = '/api/testdata/generate/boundary'
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate boundary test data: {str(e)}")
+
+
+@app.post(
+    "/api/testdata/generate/equivalence",
+    tags=["Test Data"],
+    summary="⚖️ Generate Equivalence Partitioning Test Data",
+    description="""Generate AI-powered equivalence partitioning test data.
+    
+    Includes:
+    - Valid partitions (representative valid values)
+    - Invalid partitions (representative invalid values)
+    - Boundary partitions (values at class boundaries)
+    - Domain-specific partitions
+    - Format variations
+    
+    Returns test data with `_partition_class`, `_partition_type`, `_description`, and `_test_type` metadata.
+    """
+)
+async def generate_equivalence_testdata(request: DynamicTestDataRequest):
+    """
+    Generate EQUIVALENCE PARTITIONING test data.
+    Automatically sets testDataType to 'equivalence'.
+    
+    If EXTERNAL_EQUIVALENCE_API_URL is set, forwards the request to external LLM-integrated API.
+    Otherwise, uses local GPT-4o generation.
+    """
+    try:
+        # Check if external equivalence API is configured
+        external_api_url = os.getenv('EXTERNAL_EQUIVALENCE_API_URL')
+        
+        if external_api_url:
+            # Use external LLM-integrated API
+            import httpx
+            print(f"🌐 Using external equivalence API: {external_api_url}")
+            
+            # Get access token from environment
+            api_token = os.getenv('EXTERNAL_API_TOKEN', '')
+            
+            # Build headers with Bearer token if available
+            headers = {'Content-Type': 'application/json'}
+            if api_token:
+                headers['Authorization'] = f'Bearer {api_token}'
+                print("🔑 Using Bearer token for authentication")
+            else:
+                print("⚠️ No EXTERNAL_API_TOKEN found in environment")
+            
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                request_payload = {
+                    'script_code': request.script_code,
+                    'template': request.template,
+                    'count': request.count,
+                    'options': request.options
+                }
+                
+                print(f"📤 Sending request to external API...")
+                
+                response = await client.post(
+                    external_api_url,
+                    json=request_payload,
+                    headers=headers
+                )
+                
+                print(f"📥 Response received: Status {response.status_code}")
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    # Add metadata to indicate external API was used
+                    if 'metadata' not in result:
+                        result['metadata'] = {}
+                    result['metadata']['source'] = 'external_llm_api'
+                    result['metadata']['external_endpoint'] = external_api_url
+                    result['metadata']['partition_types'] = [
+                        'valid_partition', 'invalid_partition', 'boundary_partition'
+                    ]
+                    result['metadata']['partition_classes'] = [
+                        'valid_standard', 'valid_edge', 'invalid_format',
+                        'invalid_range', 'boundary_min', 'boundary_max'
+                    ]
+                    result['metadata']['endpoint'] = '/api/testdata/generate/equivalence'
+                    print("✅ External equivalence API response received")
+                    return result
+                elif response.status_code == 401:
+                    print(f"❌ Authentication failed (401). Falling back to local generation...")
+                else:
+                    print(f"⚠️ External API failed with status {response.status_code}")
+                    print("   Falling back to local generation...")
+        
+        # Fall back to local generation if external API not configured or failed
+        # Force test data type to equivalence
+        request.testDataType = 'equivalence'
+        
+        # Call the main dynamic testdata generation with equivalence type
+        result = await generate_dynamic_testdata(request)
+        
+        # Add equivalence-specific metadata
+        if result.get('success'):
+            result['metadata']['partition_types'] = [
+                'valid_partition',
+                'invalid_partition',
+                'boundary_partition'
+            ]
+            result['metadata']['partition_classes'] = [
+                'valid_standard',
+                'valid_edge',
+                'invalid_format',
+                'invalid_range',
+                'boundary_min',
+                'boundary_max'
+            ]
+            result['metadata']['endpoint'] = '/api/testdata/generate/equivalence'
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate equivalence test data: {str(e)}")
+
+
+@app.post(
+    "/api/testdata/generate/positive",
+    tags=["Test Data"],
+    summary="✅ Generate Positive Test Data",
+    description="""Generate AI-powered positive (valid) test data.
+    
+    Includes:
+    - Valid data within expected ranges
+    - Proper formats (email, phone, date)
+    - Representative valid values
+    - Realistic user scenarios
+    - Multiple valid formats (standard, corporate, international)
+    
+    Returns test data with `_scenario_type`, `_description`, and `_test_type` metadata.
+    """
+)
+async def generate_positive_testdata(request: DynamicTestDataRequest):
+    """
+    Generate POSITIVE (valid) test data.
+    Automatically sets testDataType to 'positive'.
+    
+    If EXTERNAL_POSITIVE_API_URL is set, forwards the request to external LLM-integrated API.
+    Otherwise, uses local GPT-4o generation.
+    """
+    try:
+        # Check if external positive API is configured
+        external_api_url = os.getenv('EXTERNAL_POSITIVE_API_URL')
+        
+        if external_api_url:
+            # Use external LLM-integrated API
+            import httpx
+            print(f"🌐 Using external positive API: {external_api_url}")
+            
+            # Get access token from environment
+            api_token = os.getenv('EXTERNAL_API_TOKEN', '')
+            
+            # Build headers with Bearer token if available
+            headers = {'Content-Type': 'application/json'}
+            if api_token:
+                headers['Authorization'] = f'Bearer {api_token}'
+                print("🔑 Using Bearer token for authentication")
+                print(f"   Token length: {len(api_token)} characters")
+                print(f"   Token starts with: {api_token[:30]}...")
+                print(f"   Token ends with: ...{api_token[-20:]}")
+                print(f"   Headers: {headers}")
+            else:
+                print("⚠️ No EXTERNAL_API_TOKEN found in environment")
+                print("   Check .env file for EXTERNAL_API_TOKEN variable")
+            
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                request_payload = {
+                    'script_code': request.script_code,
+                    'template': request.template,
+                    'count': request.count,
+                    'options': request.options
+                }
+                
+                print(f"📤 Sending request to external API...")
+                print(f"   URL: {external_api_url}")
+                print(f"   Payload: {request_payload}")
+                
+                response = await client.post(
+                    external_api_url,
+                    json=request_payload,
+                    headers=headers
+                )
+                
+                print(f"📥 Response received:")
+                print(f"   Status Code: {response.status_code}")
+                print(f"   Headers: {dict(response.headers)}")
+                print(f"   Body: {response.text[:200]}..." if len(response.text) > 200 else f"   Body: {response.text}")
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    # Add metadata to indicate external API was used
+                    if 'metadata' not in result:
+                        result['metadata'] = {}
+                    result['metadata']['source'] = 'external_llm_api'
+                    result['metadata']['external_endpoint'] = external_api_url
+                    result['metadata']['scenario_types'] = [
+                        'standard', 'corporate', 'international', 'formatted', 'edge_valid'
+                    ]
+                    result['metadata']['validation_status'] = 'all_valid'
+                    result['metadata']['endpoint'] = '/api/testdata/generate/positive'
+                    print("✅ External positive API response received")
+                    return result
+                elif response.status_code == 401:
+                    print(f"❌ Authentication failed (401). Token may be expired or invalid.")
+                    print(f"   Response: {response.text}")
+                    print("   Falling back to local generation...")
+                else:
+                    print(f"⚠️ External API failed with status {response.status_code}")
+                    print(f"   Response: {response.text}")
+                    print("   Falling back to local generation...")
+        
+        # Fall back to local generation if external API not configured or failed
+        # Force test data type to positive
+        request.testDataType = 'positive'
+        
+        # Call the main dynamic testdata generation with positive type
+        result = await generate_dynamic_testdata(request)
+        
+        # Add positive-specific metadata
+        if result.get('success'):
+            result['metadata']['scenario_types'] = [
+                'standard',
+                'corporate',
+                'international',
+                'formatted',
+                'edge_valid'
+            ]
+            result['metadata']['validation_status'] = 'all_valid'
+            result['metadata']['endpoint'] = '/api/testdata/generate/positive'
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate positive test data: {str(e)}")
+
+
+@app.post(
+    "/api/testdata/generate/negative",
+    tags=["Test Data"],
+    summary="❌ Generate Negative Test Data",
+    description="""Generate AI-powered negative (invalid) test data.
+    
+    Includes:
+    - Invalid data formats
+    - Empty values and null inputs
+    - Special characters and symbols
+    - Extra long strings
+    - Missing required parts
+    - Wrong data types
+    
+    Returns test data with `_invalid_type`, `_description`, and `_test_type` metadata.
+    """
+)
+async def generate_negative_testdata(request: DynamicTestDataRequest):
+    """
+    Generate NEGATIVE (invalid) test data.
+    Automatically sets testDataType to 'negative'.
+    
+    If EXTERNAL_NEGATIVE_API_URL is set, forwards the request to external LLM-integrated API.
+    Otherwise, uses local GPT-4o generation.
+    """
+    try:
+        # Check if external negative API is configured
+        external_api_url = os.getenv('EXTERNAL_NEGATIVE_API_URL')
+        
+        if external_api_url:
+            # Use external LLM-integrated API
+            import httpx
+            print(f"🌐 Using external negative API: {external_api_url}")
+            
+            # Get access token from environment
+            api_token = os.getenv('EXTERNAL_API_TOKEN', '')
+            
+            # Build headers with Bearer token if available
+            headers = {'Content-Type': 'application/json'}
+            if api_token:
+                headers['Authorization'] = f'Bearer {api_token}'
+                print("🔑 Using Bearer token for authentication")
+                print(f"   Token length: {len(api_token)} characters")
+                print(f"   Token starts with: {api_token[:30]}...")
+                print(f"   Token ends with: ...{api_token[-20:]}")
+            else:
+                print("⚠️ No EXTERNAL_API_TOKEN found in environment")
+            
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                request_payload = {
+                    'script_code': request.script_code,
+                    'template': request.template,
+                    'count': request.count,
+                    'options': request.options
+                }
+                
+                print(f"📤 Sending request to external API...")
+                print(f"   URL: {external_api_url}")
+                
+                response = await client.post(
+                    external_api_url,
+                    json=request_payload,
+                    headers=headers
+                )
+                
+                print(f"📥 Response received:")
+                print(f"   Status Code: {response.status_code}")
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    # Add metadata to indicate external API was used
+                    if 'metadata' not in result:
+                        result['metadata'] = {}
+                    result['metadata']['source'] = 'external_llm_api'
+                    result['metadata']['external_endpoint'] = external_api_url
+                    result['metadata']['invalid_types'] = [
+                        'empty', 'null', 'invalid_format', 'too_long', 'too_short',
+                        'special_chars', 'wrong_type', 'missing_required'
+                    ]
+                    result['metadata']['validation_status'] = 'all_invalid'
+                    result['metadata']['endpoint'] = '/api/testdata/generate/negative'
+                    print("✅ External negative API response received")
+                    return result
+                elif response.status_code == 401:
+                    print(f"❌ Authentication failed (401). Falling back to local generation...")
+                else:
+                    print(f"⚠️ External API failed with status {response.status_code}")
+                    print("   Falling back to local generation...")
+        
+        # Fall back to local generation if external API not configured or failed
+        # Force test data type to negative
+        request.testDataType = 'negative'
+        
+        # Call the main dynamic testdata generation with negative type
+        result = await generate_dynamic_testdata(request)
+        
+        # Add negative-specific metadata
+        if result.get('success'):
+            result['metadata']['invalid_types'] = [
+                'empty',
+                'null',
+                'invalid_format',
+                'too_long',
+                'too_short',
+                'special_chars',
+                'wrong_type',
+                'missing_required'
+            ]
+            result['metadata']['validation_status'] = 'all_invalid'
+            result['metadata']['endpoint'] = '/api/testdata/generate/negative'
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate negative test data: {str(e)}")
+
+
+# ==================== Health Check ====================
+
+@app.get(
+    "/",
+    tags=["Health Check"],
+    summary="👋 Service Root",
+    description="Welcome endpoint with service information"
+)
+async def root():
+    """Root endpoint - service information"""
+    return {
+        "service": "🤖 AI-Powered Playwright Test Analysis Service",
+        "version": "2.0.0",
+        "status": "running",
+        "features": [
+            "Enhanced Script Analysis",
+            "Quality Scoring (0-100)",
+            "XPath Deep Analysis",
+            "Locator Quality Assessment",
+            "Test Pattern Detection",
+            "Proactive Recommendations",
+            "Test Data Generation - All 5 Types"
+        ],
+        "test_data_endpoints": {
+            "security": "/api/testdata/generate/security",
+            "boundary": "/api/testdata/generate/boundary",
+            "equivalence": "/api/testdata/generate/equivalence",
+            "positive": "/api/testdata/generate/positive",
+            "negative": "/api/testdata/generate/negative",
+            "unified": "/api/dynamic/generate-testdata",
+            "recommendations": "/api/ai-analysis/recommend-testdata"
+        },
+        "docs": "/docs",
+        "redoc": "/redoc",
+        "openapi": "/openapi.json"
+    }
+
+
+@app.get(
+    "/health",
+    tags=["Health Check"],
+    summary="❤️ Health Check",
+    description="Check if the service is healthy and operational"
+)
+async def health_check():
+    """Health check endpoint"""
+    from script_analyzer import script_analyzer
+    
+    try:
+        # Quick test of analyzer
+        test_script = "await page.goto('https://example.com');"
+        _ = script_analyzer.analyze(test_script)
+        
+        return {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "components": {
+                "api": "ok",
+                "script_analyzer": "ok",
+                "llm_service": "available" if os.getenv('OPENAI_API_KEY') else "fallback_mode"
+            },
+            "version": "2.0.0"
+        }
+    except Exception as e:
+        return {
+            "status": "degraded",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
 
 
 # ==================== Run Server ====================

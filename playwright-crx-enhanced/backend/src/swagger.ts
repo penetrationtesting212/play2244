@@ -82,7 +82,8 @@ const swaggerDefinition = {
     { name: 'Scripts' },
     { name: 'TestRuns' },
     { name: 'Extensions' },
-    { name: 'TestData' }
+    { name: 'TestData' },
+    { name: 'Testing Strategies' }
   ],
   paths: {
     '/auth/login': {
@@ -549,6 +550,198 @@ const swaggerDefinition = {
                 }
               }
             }
+          }
+        }
+      }
+    },
+    '/testing-strategies/security': {
+      post: {
+        tags: ['Testing Strategies'],
+        summary: 'Generate security test data (SQL injection, XSS, CSRF, etc.)',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  count: { type: 'number', default: 10, description: 'Number of test cases to generate' },
+                  options: { type: 'object', description: 'Additional options for generation' },
+                  useAI: { type: 'boolean', default: true, description: 'Use Python AI for generation' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'Security tests generated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    message: { type: 'string' },
+                    data: { type: 'array', items: { type: 'object' } },
+                    source: { type: 'string', enum: ['python-ai', 'local'] },
+                    metadata: { type: 'object' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/testing-strategies/boundary': {
+      post: {
+        tags: ['Testing Strategies'],
+        summary: 'Generate boundary value analysis test data',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  count: { type: 'number', default: 9, description: 'Number of boundary test cases' },
+                  fieldName: { type: 'string', default: 'value', description: 'Field name to test' },
+                  fieldType: { type: 'string', default: 'number', enum: ['number', 'string', 'date'], description: 'Field type' },
+                  minValue: { type: 'number', default: 0, description: 'Minimum valid value' },
+                  maxValue: { type: 'number', default: 100, description: 'Maximum valid value' },
+                  options: { type: 'object', description: 'Additional options' },
+                  useAI: { type: 'boolean', default: true, description: 'Use Python AI for generation' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'Boundary tests generated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    message: { type: 'string' },
+                    data: { type: 'array', items: { type: 'object' } },
+                    source: { type: 'string' },
+                    metadata: { type: 'object' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/testing-strategies/equivalence': {
+      post: {
+        tags: ['Testing Strategies'],
+        summary: 'Generate equivalence partitioning test data',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  count: { type: 'number', default: 10, description: 'Number of test cases' },
+                  fieldName: { type: 'string', default: 'transferAmount', description: 'Field name to test' },
+                  partitionType: { type: 'string', default: 'all', enum: ['valid', 'invalid', 'boundary', 'all'], description: 'Partition type' },
+                  options: { type: 'object', description: 'Additional options' },
+                  useAI: { type: 'boolean', default: true, description: 'Use Python AI for generation' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'Equivalence tests generated successfully'
+          }
+        }
+      }
+    },
+    '/testing-strategies/analyze-security': {
+      post: {
+        tags: ['Testing Strategies'],
+        summary: 'Analyze script for security vulnerabilities using Python AI',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  scriptCode: { type: 'string', description: 'Playwright script code to analyze' },
+                  scriptId: { type: 'string', description: 'Script ID (optional)' }
+                },
+                required: ['scriptCode']
+              }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'Security analysis completed',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    message: { type: 'string' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        vulnerabilities: { type: 'array' },
+                        recommendations: { type: 'array' },
+                        riskScore: { type: 'number' }
+                      }
+                    },
+                    source: { type: 'string' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/testing-strategies/generate-comprehensive': {
+      post: {
+        tags: ['Testing Strategies'],
+        summary: 'Generate comprehensive test suite using Python AI',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  scriptCode: { type: 'string', description: 'Script code to analyze' },
+                  scriptId: { type: 'string', description: 'Script ID' },
+                  includeSecurityTests: { type: 'boolean', default: true },
+                  includeBoundaryTests: { type: 'boolean', default: true },
+                  includeEquivalenceTests: { type: 'boolean', default: true },
+                  count: { type: 'number', default: 5, description: 'Test cases per category' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'Comprehensive test suite generated successfully'
           }
         }
       }

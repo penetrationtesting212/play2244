@@ -13,13 +13,26 @@ import {
   getTestData,
   createTestData,
   updateTestData,
-  deleteTestData
+  deleteTestData,
+  generateSecurityTestData,
+  generateBoundaryTestData,
+  generateEquivalenceTestData,
+  generatePositiveTestData,
+  generateNegativeTestData
 } from '../controllers/testData.controller';
+import { analyzeXPath } from '../controllers/ai-analysis.controller';
 
 const router = Router();
 
-// All routes require authentication
-router.use(authMiddleware);
+// Skip authentication for external API forwarding endpoints
+router.use((req, res, next) => {
+  // Skip auth for external API generation endpoints
+  if (req.path.startsWith('/generate/')) {
+    return next();
+  }
+  // Apply auth middleware for other routes
+  return authMiddleware(req, res, next);
+});
 
 // Test Suite routes
 router.get('/suites', getTestSuites);
@@ -188,5 +201,15 @@ router.post('/generate-save', async (req, res) => {
     return res.status(status).json({ error: 'GenerationPersistError', traceId, ...(typeof data === 'object' ? data : { message: String(data) }) });
   }
 });
+
+// External API forwarding routes - Test Data Generation (NO AUTH REQUIRED)
+router.post('/generate/security', generateSecurityTestData);
+router.post('/generate/boundary', generateBoundaryTestData);
+router.post('/generate/equivalence', generateEquivalenceTestData);
+router.post('/generate/positive', generatePositiveTestData);
+router.post('/generate/negative', generateNegativeTestData);
+
+// XPath Analysis endpoint (NO AUTH REQUIRED)
+router.post('/xpath-analysis', analyzeXPath);
 
 export default router;

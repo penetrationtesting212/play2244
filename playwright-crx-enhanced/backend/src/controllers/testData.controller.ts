@@ -2,6 +2,10 @@ import { Request, Response } from 'express';
 import { AppError } from '../middleware/errorHandler';
 import pool from '../db';
 import { randomUUID } from 'crypto';
+import axios from 'axios';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 /**
  * Get all test suites for a user
@@ -262,4 +266,111 @@ export const deleteTestData = async (req: Request, res: Response) => {
       res.status(500).json({ success: false, error: error.message || 'Failed to delete test data' });
     }
   }
+};
+
+/**
+ * Forward request to external API for test data generation
+ * Reads token from .env file and forwards to external Genie API
+ */
+const forwardToExternalAPI = async (testDataType: string, req: Request, res: Response): Promise<void> => {
+  try {
+    const { script_code, template, count } = req.body;
+
+    // Get external API URL and token from .env
+    const apiUrlMap: Record<string, string | undefined> = {
+      'security': process.env.EXTERNAL_SECURITY_API_URL,
+      'boundary': process.env.EXTERNAL_BOUNDARY_API_URL,
+      'equivalence': process.env.EXTERNAL_EQUIVALENCE_API_URL,
+      'positive': process.env.EXTERNAL_POSITIVE_API_URL,
+      'negative': process.env.EXTERNAL_NEGATIVE_API_URL
+    };
+
+    const externalApiUrl = apiUrlMap[testDataType];
+    const externalToken = process.env.EXTERNAL_API_TOKEN;
+
+    if (!externalApiUrl) {
+      res.status(400).json({
+        success: false,
+        error: `External API URL for ${testDataType} not configured in .env file`
+      });
+      return;
+    }
+
+    if (!externalToken) {
+      res.status(400).json({
+        success: false,
+        error: 'EXTERNAL_API_TOKEN not configured in .env file'
+      });
+      return;
+    }
+
+    console.log(`📤 Forwarding to external API: ${externalApiUrl}`);
+    console.log(`🔑 Using token from .env`);
+
+    // Forward request to external API
+    const response = await axios.post(externalApiUrl, {
+      script_code,
+      template,
+      count
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${externalToken}`
+      }
+    });
+
+    console.log(`✅ External API response received`);
+
+    // Return external API response
+    res.status(200).json({
+      success: true,
+      data: response.data,
+      metadata: {
+        external_endpoint: externalApiUrl,
+        test_data_type: testDataType,
+        source: 'external_api'
+      }
+    });
+  } catch (error: any) {
+    console.error(`❌ External API Error:`, error.message);
+    if (error.response) {
+      console.error(`👉 Status:`, error.response.status);
+      console.error(`👉 Response:`, error.response.data);
+    }
+
+    res.status(error.response?.status || 500).json({
+      success: false,
+      error: error.response?.data || error.message,
+      metadata: {
+        external_endpoint: error.config?.url,
+        test_data_type: testDataType,
+        source: 'external_api_error'
+      }
+    });
+  }
+};
+
+// Generate test data - Security
+export const generateSecurityTestData = async (req: Request, res: Response) => {
+  await forwardToExternalAPI('security', req, res);
+};
+
+// Generate test data - Boundary
+export const generateBoundaryTestData = async (req: Request, res: Response) => {
+  await forwardToExternalAPI('boundary', req, res);
+};
+
+// Generate test data - Equivalence
+export const generateEquivalenceTestData = async (req: Request, res: Response) => {
+  await forwardToExternalAPI('equivalence', req, res);
+};
+
+// Generate test data - Positive
+export const generatePositiveTestData = async (req: Request, res: Response) => {
+  await forwardToExternalAPI('positive', req, res);
+};
+
+// Generate test data - Negative
+export const generateNegativeTestData = async (req: Request, res: Response) => {
+  await forwardToExternalAPI('negative', req, res);
 };

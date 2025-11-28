@@ -279,9 +279,77 @@ export const enhanceScript = async (req: Request, res: Response) => {
       reason: string;
       confidence: number;
       category: 'selector' | 'wait' | 'assertion' | 'page-object' | 'parameterization' | 'error-handling' | 'logging' | 'retry' | 'best-practice';
+      aiPowered?: boolean;
+      xpathAnalysis?: any;
+      aiMetadata?: any;
     };
 
     const suggestions: Suggestion[] = [];
+
+    // ============ NEW: TRY AI SERVICE FIRST ============
+    try {
+      console.log('🤖 Calling AI service for enhanced script analysis...');
+      
+      const axios = require('axios');
+      const aiResponse = await axios.post('http://localhost:8000/api/ai-analysis/analyze-script-enhanced', {
+        script_code: code,
+        generate_recommendations: true
+      }, {
+        timeout: 30000
+      });
+      
+      if (aiResponse.data.success) {
+        const aiAnalysis = aiResponse.data.data;
+        console.log(`✅ AI Analysis: Quality ${aiAnalysis.quality_score}/100, ${aiAnalysis.recommendations?.length || 0} recommendations`);
+        
+        // Convert AI recommendations to suggestions
+        if (aiAnalysis.recommendations && Array.isArray(aiAnalysis.recommendations)) {
+          aiAnalysis.recommendations.forEach((rec: any) => {
+            suggestions.push({
+              lineNumber: rec.line_number || 0,
+              originalCode: lines[rec.line_number] || '',
+              suggestedCode: rec.suggested_code || rec.suggestion || '',
+              reason: rec.description || rec.title || 'AI-recommended improvement',
+              confidence: rec.priority === 'high' ? 0.95 : rec.priority === 'medium' ? 0.85 : 0.75,
+              category: rec.category || 'best-practice',
+              aiPowered: true,
+              aiMetadata: {
+                quality_score: aiAnalysis.quality_score,
+                test_pattern: aiAnalysis.test_pattern
+              }
+            });
+          });
+        }
+
+        // Add XPath-specific suggestions
+        if (aiAnalysis.xpath_analysis && Array.isArray(aiAnalysis.xpath_analysis)) {
+          aiAnalysis.xpath_analysis.forEach((xpath: any) => {
+            if (xpath.stability_score < 60 || xpath.complexity_score > 70) {
+              suggestions.push({
+                lineNumber: xpath.line_number,
+                originalCode: lines[xpath.line_number] || '',
+                suggestedCode: xpath.recommended_alternative || `// ${xpath.recommended_alternative}`,
+                reason: `XPath stability: ${xpath.stability_score}/100, complexity: ${xpath.complexity_score}/100. Issues: ${xpath.issues.join(', ')}`,
+                confidence: 0.92,
+                category: 'selector',
+                aiPowered: true,
+                xpathAnalysis: {
+                  type: xpath.type,
+                  stability_score: xpath.stability_score,
+                  complexity_score: xpath.complexity_score,
+                  issues: xpath.issues
+                }
+              });
+            }
+          });
+        }
+        
+        console.log(`✅ Added ${suggestions.length} AI-powered suggestions`);
+      }
+    } catch (aiError: any) {
+      console.warn('⚠️ AI service unavailable, using regex patterns:', aiError.message);
+    }
+    // ============ END AI SERVICE INTEGRATION ============
 
     // Heuristic patterns for Phase I enhancements
     const textSelectorRegex = /(page\.(click|locator)\s*\(\s*['"]text=([^'"]+)['"]\s*\))/;

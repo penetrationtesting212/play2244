@@ -87,17 +87,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const token = localStorage.getItem('accessToken');
   const headers = { Authorization: `Bearer ${token}` };
 
-  // Handle 401 errors globally
+  // Handle 401 errors globally - but only for our backend, not external APIs
   useEffect(() => {
     const interceptor = axios.interceptors.response.use(
       (response) => response,
       (error) => {
-        if (error.response?.status === 401) {
-          // Token expired or invalid
+        // Only logout for 401 errors from OUR backend (localhost:3001)
+        // Ignore 401 errors from external APIs (like 34.46.36.105)
+        const isOurBackend = error.config?.url?.includes('localhost:3001') || 
+                            error.config?.url?.includes('http://localhost:3001');
+        
+        if (error.response?.status === 401 && isOurBackend) {
+          // Token expired or invalid for OUR backend
+          console.log('❌ Your session has expired. Please log in again.');
           alert('Your session has expired. Please log in again.');
           localStorage.removeItem('accessToken');
           window.location.href = '/login.html';
+        } else if (error.response?.status === 401 && !isOurBackend) {
+          // 401 from external API - just log it, don't logout
+          console.warn('⚠️ External API returned 401 - this will not affect your session');
+          console.warn('External URL:', error.config?.url);
         }
+        
         return Promise.reject(error);
       }
     );

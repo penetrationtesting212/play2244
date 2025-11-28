@@ -124,6 +124,25 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
     }
   }, [autoOpenTestData, enhancement]);
 
+  // Debug: Monitor generatedTestData state changes
+  useEffect(() => {
+    console.log('🔄 generatedTestData state changed:', {
+      hasData: !!generatedTestData,
+      data: generatedTestData
+    });
+    
+    // Auto-scroll to test data results when data is generated
+    if (generatedTestData) {
+      setTimeout(() => {
+        const resultsElement = document.querySelector('[data-testdata-results]');
+        if (resultsElement) {
+          resultsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          console.log('📜 Auto-scrolled to test data results');
+        }
+      }, 100);
+    }
+  }, [generatedTestData]);
+
   const loadProjects = async () => {
     setLoadingProjects(true);
     try {
@@ -154,7 +173,17 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
       const res = await axios.get(`${API_URL}/scripts`, { headers, params: { projectId } });
       console.log('Scripts loaded:', res.data);
       const scriptList = res.data.data || res.data.scripts || [];
-      setScripts(scriptList);
+      
+      // Deduplicate scripts by ID to show only unique records
+      const uniqueScripts = scriptList.reduce((acc: any[], script: any) => {
+        if (!acc.find(s => s.id === script.id)) {
+          acc.push(script);
+        }
+        return acc;
+      }, []);
+      
+      console.log(`Loaded ${scriptList.length} scripts, ${uniqueScripts.length} unique`);
+      setScripts(uniqueScripts);
       
       // Auto-select if initialScriptId is in this project
       if (initialScriptId && !selectedScriptId) {
@@ -377,7 +406,6 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
     setGeneratedTestData(null);
 
     try {
-      const AI_SERVICE_URL = 'http://localhost:8000/api/ai-analysis';
       let scriptCode = '';
 
       // Get script code based on source
@@ -404,23 +432,94 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
         scriptCode = await uploadedFile.text();
       }
       
-      // Step 1: Get test data recommendations
-      const recResponse = await axios.post(`${AI_SERVICE_URL}/recommend-testdata`, {
-        script_content: scriptCode
-      });
-
-      const recommendation = recResponse.data.data;
-      setTestDataRecommendation(recommendation);
-
-      // Step 2: Generate actual test data if template exists
-      if (recommendation.recommended_template && Object.keys(recommendation.recommended_template).length > 0) {
-        const genResponse = await axios.post('http://localhost:8000/api/dynamic/generate-testdata', {
-          template: recommendation.recommended_template,
-          count: testDataCount,
-          testDataType: testDataType // Pass the selected test data type
+      console.log('🚀 Generating test data via external GPT-4 APIs (no local AI service)');
+      
+      // Call backend API directly - backend will analyze script and generate test data via external GPT-4 APIs
+      const endpointMap: Record<string, string> = {
+        'security': '/api/testdata/generate/security',
+        'boundary': '/api/testdata/generate/boundary',
+        'equivalence': '/api/testdata/generate/equivalence',
+        'positive': '/api/testdata/generate/positive',
+        'negative': '/api/testdata/generate/negative'
+      };
+      
+      // If 'all' is selected, call all endpoints and combine results
+      if (testDataType === 'all') {
+        console.log(`📤 Generating ALL test data types via external GPT-4 APIs`);
+        const allResults: any = {
+          success: true,
+          data: [],
+          metadata: {
+            test_data_types: ['positive', 'negative', 'boundary', 'security', 'equivalence'],
+            source: 'external_api',
+            combined: true
+          }
+        };
+        
+        // Call each endpoint sequentially
+        for (const [type, endpoint] of Object.entries(endpointMap)) {
+          try {
+            const fullUrl = `http://localhost:3001${endpoint}`;
+            console.log(`📤 Calling ${type}: ${fullUrl}`);
+            console.log(`   → External GPT-4 will analyze script and generate test data`);
+            
+            const genResponse = await axios.post(fullUrl, {
+              script_code: scriptCode,  // GPT-4 will analyze this
+              template: {},  // Let GPT-4 determine the template
+              count: Math.ceil(testDataCount / 5) // Distribute count across types
+            }, {
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            
+            console.log(`✅ ${type} completed via external GPT-4 API`);
+            console.log(`   → Endpoint: ${genResponse.data.metadata?.external_endpoint}`);
+            
+            // Extract and add data
+            const responseData = Array.isArray(genResponse.data.data) 
+              ? genResponse.data.data 
+              : genResponse.data.data?.data || [];
+            
+            allResults.data.push(...responseData);
+          } catch (err: any) {
+            console.error(`❌ Failed to generate ${type}:`, err.message);
+          }
+        }
+        
+        console.log(`🎉 All test data types generated: ${allResults.data.length} total records`);
+        setGeneratedTestData(allResults);
+      } else {
+        // Single type generation
+        const endpoint = endpointMap[testDataType];
+        if (!endpoint) {
+          throw new Error(`Unknown test data type: ${testDataType}`);
+        }
+        
+        const fullUrl = `http://localhost:3001${endpoint}`;
+        
+        console.log(`📤 Calling backend API: ${fullUrl}`);
+        console.log(`🎯 Test Data Type: ${testDataType}`);
+        console.log(`📦 External GPT-4 will analyze script and generate test data`);
+        
+        const genResponse = await axios.post(fullUrl, {
+          script_code: scriptCode,  // GPT-4 will analyze this
+          template: {},  // Let GPT-4 determine the template
+          count: testDataCount
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
         });
+        
+        console.log(`✅ Response received from backend`);
+        console.log(`🌐 External GPT-4 API: ${genResponse.data.metadata?.external_endpoint || 'unknown'}`);
+        console.log(`📊 Full Response Data:`, genResponse.data);
 
         setGeneratedTestData(genResponse.data);
+        console.log(`✅ State updated - generatedTestData should now be set`);
       }
 
       // DON'T close modal - keep it open to show results
@@ -428,7 +527,7 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
 
     } catch (err: any) {
       console.error('Test data generation error:', err);
-      setError(err.response?.data?.detail || 'Failed to generate test data');
+      setError(err.response?.data?.detail || err.response?.data?.error || 'Failed to generate test data');
     } finally {
       setGeneratingTestData(false);
     }
@@ -950,6 +1049,150 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
                 </label>
               </div>
 
+              {/* 🔥 GENERATED TEST DATA - PROMINENT DISPLAY 🔥 */}
+              {generatedTestData && (() => {
+                const dataArray = Array.isArray(generatedTestData.data) 
+                  ? generatedTestData.data 
+                  : generatedTestData.data?.data || [];
+                
+                if (dataArray.length === 0) return null;
+                
+                return (
+                  <div style={{
+                    marginBottom: '20px',
+                    padding: '20px',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: 'white',
+                    borderRadius: '12px',
+                    boxShadow: '0 8px 24px rgba(16, 185, 129, 0.5)',
+                    border: '3px solid #059669',
+                    animation: 'pulse 2s infinite'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '16px'
+                    }}>
+                      <h3 style={{ 
+                        fontSize: '20px', 
+                        fontWeight: 700,
+                        margin: 0
+                      }}>
+                        ✅ GPT-4 Generated Test Data ({dataArray.length} records)
+                      </h3>
+                      <span style={{ 
+                        padding: '8px 16px', 
+                        background: 'rgba(255,255,255,0.3)', 
+                        borderRadius: '8px', 
+                        fontSize: '13px',
+                        fontWeight: 700
+                      }}>
+                        🎯 {generatedTestData.metadata?.testDataType?.toUpperCase() || 'MIXED TYPES'}
+                      </span>
+                    </div>
+                    
+                    <div style={{
+                      background: 'rgba(255,255,255,0.98)',
+                      color: '#1e293b',
+                      padding: '16px',
+                      borderRadius: '8px',
+                      marginBottom: '12px',
+                      maxHeight: '500px',
+                      overflowY: 'auto'
+                    }}>
+                      {dataArray.map((record: any, idx: number) => (
+                        <div key={idx} style={{
+                          marginBottom: '12px',
+                          padding: '12px',
+                          background: idx % 2 === 0 ? '#f8fafc' : 'white',
+                          borderRadius: '6px',
+                          border: '1px solid #e5e7eb'
+                        }}>
+                          <div style={{ 
+                            fontWeight: 700, 
+                            color: '#059669', 
+                            marginBottom: '8px',
+                            fontSize: '13px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}>
+                            <span>#{idx + 1}</span>
+                            {record._testDataType && (
+                              <span style={{ 
+                                padding: '3px 10px',
+                                background: record._testDataType === 'security' ? '#ef4444' : 
+                                           record._testDataType === 'boundary' ? '#f59e0b' :
+                                           record._testDataType === 'negative' ? '#ec4899' : 
+                                           record._testDataType === 'positive' ? '#10b981' : '#6366f1',
+                                color: 'white',
+                                borderRadius: '4px',
+                                fontSize: '10px'
+                              }}>
+                                {record._testDataType.toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+                          <pre style={{ 
+                            margin: 0, 
+                            whiteSpace: 'pre-wrap', 
+                            wordBreak: 'break-word', 
+                            fontSize: '11px',
+                            background: 'transparent',
+                            padding: 0
+                          }}>
+                            {JSON.stringify(record, null, 2)}
+                          </pre>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(JSON.stringify(dataArray, null, 2));
+                          alert(`✅ ${dataArray.length} test records copied to clipboard!`);
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '12px 20px',
+                          background: 'white',
+                          color: '#059669',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                        }}
+                      >
+                        📋 Copy All ({dataArray.length} records)
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm('Clear test data results?')) {
+                            setGeneratedTestData(null);
+                          }
+                        }}
+                        style={{
+                          padding: '12px 20px',
+                          background: 'rgba(239, 68, 68, 0.9)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🗑️ Clear
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Test Data Generation Button */}
               <div style={{ marginTop: '20px', marginBottom: '20px' }}>
                 <button
@@ -978,8 +1221,10 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
               </div>
 
               {/* Test Data Recommendation Results */}
-              {testDataRecommendation && (
-                <div style={{
+              {(testDataRecommendation || generatedTestData) && (
+                <div 
+                  data-testdata-results
+                  style={{
                   marginBottom: '24px',
                   padding: '16px',
                   background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
@@ -999,7 +1244,7 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
                   </h4>
 
                   {/* Detected Fields */}
-                  {testDataRecommendation.detected_fields && testDataRecommendation.detected_fields.length > 0 && (
+                  {testDataRecommendation?.detected_fields && testDataRecommendation.detected_fields.length > 0 && (
                     <div style={{
                       background: 'rgba(255,255,255,0.95)',
                       color: '#1e293b',
@@ -1025,7 +1270,7 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
                   )}
 
                   {/* GPT-4o Recommendation */}
-                  {testDataRecommendation.gpt4_recommendation && (
+                  {testDataRecommendation?.gpt4_recommendation && (
                     <div style={{
                       background: 'rgba(255,255,255,0.95)',
                       color: '#1e293b',
@@ -1042,7 +1287,20 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
                   )}
 
                   {/* Generated Test Data */}
-                  {generatedTestData && generatedTestData.data && (
+                  {generatedTestData && (() => {
+                    const dataArray = Array.isArray(generatedTestData.data) 
+                      ? generatedTestData.data 
+                      : generatedTestData.data?.data || [];
+                    
+                    console.log('📊 Test Data Display Check:', {
+                      hasGeneratedTestData: !!generatedTestData,
+                      dataArrayLength: dataArray.length,
+                      structure: generatedTestData
+                    });
+                    
+                    if (dataArray.length === 0) return null;
+                    
+                    return (
                     <div style={{
                       background: 'rgba(255,255,255,0.95)',
                       color: '#1e293b',
@@ -1051,7 +1309,7 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
                       marginBottom: '16px'
                     }}>
                       <div style={{ fontWeight: 600, marginBottom: '12px', color: '#059669' }}>
-                        ✅ Generated Test Data ({generatedTestData.data.length} records)
+                        ✅ Generated Test Data ({dataArray.length} records)
                         {generatedTestData.metadata && (
                           <span style={{ 
                             marginLeft: '12px', 
@@ -1061,8 +1319,7 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
                             borderRadius: '6px', 
                             fontSize: '11px',
                             fontWeight: 700
-                          }}>
-                            Type: {generatedTestData.metadata.testDataType.toUpperCase()}
+                          }}>                            Type: {generatedTestData.metadata?.testDataType?.toUpperCase() || 'UNKNOWN'}
                           </span>
                         )}
                       </div>
@@ -1076,7 +1333,7 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
                         fontFamily: 'monospace'
                       }}>
                         {/* Show sample of first 3 records in a prettier format */}
-                        {generatedTestData.data.slice(0, 3).map((record: any, idx: number) => (
+                        {dataArray.slice(0, 3).map((record: any, idx: number) => (
                           <div key={idx} style={{
                             marginBottom: '12px',
                             padding: '10px',
@@ -1098,7 +1355,7 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
                                   fontSize: '10px',
                                   fontWeight: 700
                                 }}>
-                                  {record._testDataType.toUpperCase()}
+                                  {record._testDataType?.toUpperCase() || 'UNKNOWN'}
                                 </span>
                               )}
                             </div>
@@ -1107,9 +1364,9 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
                             </pre>
                           </div>
                         ))}
-                        {generatedTestData.data.length > 3 && (
+                        {dataArray.length > 3 && (
                           <div style={{ marginTop: '12px', padding: '8px', background: '#fef3c7', borderRadius: '6px', fontSize: '11px', textAlign: 'center', color: '#92400e' }}>
-                            ... and {generatedTestData.data.length - 3} more records (click "View All" below)
+                            ... and {dataArray.length - 3} more records (click "View All" below)
                           </div>
                         )}
                       </div>
@@ -1130,13 +1387,13 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
                           fontFamily: 'monospace'
                         }}>
                           <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                            {JSON.stringify(generatedTestData.data, null, 2)}
+                            {JSON.stringify(dataArray, null, 2)}
                           </pre>
                         </div>
                       </details>
                       <button
                         onClick={() => {
-                          navigator.clipboard.writeText(JSON.stringify(generatedTestData.data, null, 2));
+                          navigator.clipboard.writeText(JSON.stringify(dataArray, null, 2));
                           alert('✅ Test data copied to clipboard!');
                         }}
                         style={{
@@ -1154,10 +1411,11 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
                         📋 Copy to Clipboard
                       </button>
                     </div>
-                  )}
+                  );  
+                })()}
 
                   {/* Test Scenarios */}
-                  {testDataRecommendation.test_scenarios && (
+                  {testDataRecommendation?.test_scenarios && (
                     <div style={{
                       background: 'rgba(255,255,255,0.95)',
                       color: '#1e293b',
@@ -1174,7 +1432,7 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
                           fontSize: '12px'
                         }}>
                           <div style={{ fontWeight: 600, color: '#059669', marginBottom: '4px' }}>
-                            {scenario.type.toUpperCase()}: {scenario.count} records
+                            {scenario.type?.toUpperCase() || 'UNKNOWN'}: {scenario.count} records
                           </div>
                           <div style={{ color: '#6b7280' }}>{scenario.description}</div>
                         </div>
@@ -2095,7 +2353,7 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
             </div>
 
             {/* Test Data Results - Show INSIDE the modal */}
-            {testDataRecommendation && (
+            {(testDataRecommendation || generatedTestData) && (
               <div style={{
                 marginTop: '24px',
                 marginBottom: '24px',
@@ -2117,7 +2375,7 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
                 </h4>
 
                 {/* Detected Fields */}
-                {testDataRecommendation.detected_fields && testDataRecommendation.detected_fields.length > 0 && (
+                {testDataRecommendation?.detected_fields && testDataRecommendation.detected_fields.length > 0 && (
                   <div style={{
                     background: 'rgba(255,255,255,0.95)',
                     color: '#1e293b',
@@ -2145,54 +2403,125 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
                 )}
 
                 {/* Generated Test Data */}
-                {generatedTestData && generatedTestData.data && (
-                  <div style={{
-                    background: 'rgba(255,255,255,0.95)',
-                    color: '#1e293b',
-                    padding: '12px',
-                    borderRadius: '8px',
-                    marginBottom: '12px'
-                  }}>
-                    <div style={{ fontWeight: 600, marginBottom: '8px', color: '#059669', fontSize: '13px' }}>
-                      ✅ Generated Test Data ({generatedTestData.data.length} records):
-                    </div>
+                {generatedTestData && (() => {
+                  const dataArray = Array.isArray(generatedTestData.data) 
+                    ? generatedTestData.data 
+                    : generatedTestData.data?.data || [];
+                  
+                  if (dataArray.length === 0) return null;
+                  
+                  return (
                     <div style={{
-                      maxHeight: '200px',
-                      overflowY: 'auto',
-                      background: '#f8fafc',
-                      padding: '10px',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      fontFamily: 'monospace'
+                      background: 'rgba(255,255,255,0.98)',
+                      color: '#1e293b',
+                      padding: '16px',
+                      borderRadius: '8px',
+                      marginBottom: '12px'
                     }}>
-                      <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                        {JSON.stringify(generatedTestData.data, null, 2)}
-                      </pre>
-                    </div>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(JSON.stringify(generatedTestData.data, null, 2));
-                        alert('✅ Test data copied to clipboard!');
-                      }}
-                      style={{
-                        marginTop: '8px',
-                        padding: '6px 12px',
-                        background: '#059669',
-                        color: 'white',
-                        border: 'none',
+                      <div style={{ 
+                        fontWeight: 700, 
+                        marginBottom: '12px', 
+                        color: '#059669', 
+                        fontSize: '15px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <span>✅ Generated Test Data ({dataArray.length} records)</span>
+                        {generatedTestData.metadata && (
+                          <span style={{
+                            padding: '4px 12px',
+                            background: '#3b82f6',
+                            color: 'white',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 700
+                          }}>
+                            {generatedTestData.metadata?.testDataType?.toUpperCase() || 'MIXED'}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{
+                        maxHeight: '400px',
+                        overflowY: 'auto',
+                        background: '#f8fafc',
+                        padding: '12px',
                         borderRadius: '6px',
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      📋 Copy to Clipboard
-                    </button>
-                  </div>
-                )}
+                        fontSize: '11px'
+                      }}>
+                        {dataArray.map((record: any, idx: number) => (
+                          <div key={idx} style={{
+                            marginBottom: '10px',
+                            padding: '10px',
+                            background: 'white',
+                            borderRadius: '6px',
+                            border: '1px solid #e5e7eb'
+                          }}>
+                            <div style={{
+                              fontWeight: 600,
+                              color: '#3b82f6',
+                              marginBottom: '6px',
+                              fontSize: '12px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px'
+                            }}>
+                              <span>Record #{idx + 1}</span>
+                              {record._testDataType && (
+                                <span style={{
+                                  padding: '2px 8px',
+                                  background: record._testDataType === 'security' ? '#ef4444' :
+                                             record._testDataType === 'boundary' ? '#f59e0b' :
+                                             record._testDataType === 'negative' ? '#ec4899' :
+                                             record._testDataType === 'positive' ? '#10b981' : '#6366f1',
+                                  color: 'white',
+                                  borderRadius: '4px',
+                                  fontSize: '10px'
+                                }}>
+                                  {record._testDataType.toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                            <pre style={{
+                              margin: 0,
+                              whiteSpace: 'pre-wrap',
+                              wordBreak: 'break-word',
+                              fontSize: '10px',
+                              fontFamily: 'monospace',
+                              background: 'transparent',
+                              padding: 0
+                            }}>
+                              {JSON.stringify(record, null, 2)}
+                            </pre>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(JSON.stringify(dataArray, null, 2));
+                          alert(`✅ ${dataArray.length} test records copied to clipboard!`);
+                        }}
+                        style={{
+                          marginTop: '10px',
+                          padding: '8px 16px',
+                          background: '#059669',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          width: '100%'
+                        }}
+                      >
+                        📋 Copy All {dataArray.length} Records to Clipboard
+                      </button>
+                    </div>
+                  );
+                })()}
 
                 {/* GPT-4o Recommendation */}
-                {testDataRecommendation.gpt4_recommendation && (
+                {testDataRecommendation?.gpt4_recommendation && (
                   <div style={{
                     background: 'rgba(255,255,255,0.95)',
                     color: '#1e293b',
@@ -2234,7 +2563,7 @@ export const ScriptEnhancementModal: React.FC<ScriptEnhancementModalProps> = ({
                   cursor: 'pointer'
                 }}
               >
-                {testDataRecommendation ? 'Close' : 'Cancel'}
+                {generatedTestData ? 'Close' : 'Cancel'}
               </button>
               <button
                 onClick={generateTestData}

@@ -24,6 +24,7 @@ import aiEnhancementRoutes from './routes/ai-enhancement.routes';
 import aiAnalysisRoutes from './routes/ai-analysis.routes';
 import workflowRoutes from './routes/workflow.routes';
 import pipelineRoutes from './routes/pipeline.routes';
+import testingStrategiesRoutes from './routes/testing-strategies.routes';
 import pool from './db';
 
 // Middleware
@@ -144,6 +145,7 @@ app.get('/api', (_req, res) => {
       '/api/ai-analysis/*',
       '/api/workflow/*',
       '/api/pipeline/*',
+      '/api/testing-strategies/*',
       '/api-docs',
       '/api-docs.json'
     ]
@@ -170,6 +172,7 @@ app.use('/api/ai-enhancement', aiEnhancementRoutes);
 app.use('/api/ai-analysis', aiAnalysisRoutes);
 app.use('/api/workflow', workflowRoutes);
 app.use('/api/pipeline', pipelineRoutes);
+app.use('/api/testing-strategies', testingStrategiesRoutes);
 
 app.use((_req, res) => { res.status(404).json({ error: 'Route not found' }); });
 app.use(errorHandler);
