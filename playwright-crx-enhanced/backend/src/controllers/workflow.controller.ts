@@ -4,7 +4,7 @@
  */
 
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import pool from '../db';
 import { 
   WorkflowStatus, 
   isTransitionAllowed, 
@@ -12,8 +12,6 @@ import {
   getRecommendedNextStates,
   getTransitionMetadata 
 } from '../types/workflowStatus';
-
-const prisma = new PrismaClient();
 
 export class WorkflowController {
   /**
@@ -24,15 +22,14 @@ export class WorkflowController {
       const { scriptId } = req.params;
       const userId = (req as any).user?.userId;
 
-      const script = await prisma.script.findFirst({
-        where: { id: scriptId, userId },
-        select: { 
-          id: true, 
-          name: true, 
-          workflowStatus: true,
-          updatedAt: true 
-        }
-      });
+      const scriptResult = await pool.query(
+        `SELECT id, name, "workflowStatus", "updatedAt" 
+         FROM "Script" 
+         WHERE id = $1 AND "userId" = $2`,
+        [scriptId, userId]
+      );
+      
+      const script = scriptResult.rows[0];
 
       if (!script) {
         return res.status(404).json({ 
@@ -83,9 +80,12 @@ export class WorkflowController {
       }
 
       // Fetch current script
-      const script = await prisma.script.findFirst({
-        where: { id: scriptId, userId }
-      });
+      const scriptResult = await pool.query(
+        `SELECT * FROM "Script" WHERE id = $1 AND "userId" = $2`,
+        [scriptId, userId]
+      );
+      
+      const script = scriptResult.rows[0];
 
       if (!script) {
         return res.status(404).json({ 
@@ -110,19 +110,15 @@ export class WorkflowController {
       const transitionMeta = getTransitionMetadata(currentStatus, targetStatus);
 
       // Update script status
-      const updatedScript = await prisma.script.update({
-        where: { id: scriptId },
-        data: { 
-          workflowStatus: targetStatus,
-          updatedAt: new Date()
-        },
-        select: {
-          id: true,
-          name: true,
-          workflowStatus: true,
-          updatedAt: true
-        }
-      });
+      const updateResult = await pool.query(
+        `UPDATE "Script" 
+         SET "workflowStatus" = $1, "updatedAt" = NOW() 
+         WHERE id = $2 
+         RETURNING id, name, "workflowStatus", "updatedAt"`,
+        [targetStatus, scriptId]
+      );
+      
+      const updatedScript = updateResult.rows[0];
 
       res.json({
         success: true,
@@ -170,16 +166,14 @@ export class WorkflowController {
       }
 
       // Update all scripts
-      const result = await prisma.script.updateMany({
-        where: { 
-          id: { in: scriptIds },
-          userId 
-        },
-        data: { 
-          workflowStatus: targetStatus,
-          updatedAt: new Date()
-        }
-      });
+      const updateResult = await pool.query(
+        `UPDATE "Script" 
+         SET "workflowStatus" = $1, "updatedAt" = NOW() 
+         WHERE id = ANY($2) AND "userId" = $3`,
+        [targetStatus, scriptIds, userId]
+      );
+      
+      const result = { count: updateResult.rowCount || 0 };
 
       res.json({
         success: true,
@@ -206,28 +200,37 @@ export class WorkflowController {
       const { status } = req.params;
       const userId = (req as any).user?.userId;
 
-      const scripts = await prisma.script.findMany({
-        where: { 
-          workflowStatus: status,
-          userId 
-        },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          language: true,
-          workflowStatus: true,
-          createdAt: true,
-          updatedAt: true,
-          user: {
-            select: {
-              name: true,
-              email: true
-            }
-          }
-        },
-        orderBy: { updatedAt: 'desc' }
-      });
+      const scriptsResult = await pool.query(
+        `SELECT 
+           s.id, 
+           s.name, 
+           s.description, 
+           s.language, 
+           s."workflowStatus", 
+           s."createdAt", 
+           s."updatedAt",
+           u.name as "userName",
+           u.email as "userEmail"
+         FROM "Script" s
+         LEFT JOIN "User" u ON s."userId" = u.id
+         WHERE s."workflowStatus" = $1 AND s."userId" = $2
+         ORDER BY s."updatedAt" DESC`,
+        [status, userId]
+      );
+      
+      const scripts = scriptsResult.rows.map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        language: row.language,
+        workflowStatus: row.workflowStatus,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+        user: {
+          name: row.userName,
+          email: row.userEmail
+        }
+      }));
 
       res.json({
         success: true,
@@ -251,14 +254,16 @@ export class WorkflowController {
     try {
       const userId = (req as any).user?.userId;
 
-      const stats = await prisma.script.groupBy({
-        by: ['workflowStatus'],
-        where: { userId },
-        _count: { id: true }
-      });
+      const statsResult = await pool.query(
+        `SELECT "workflowStatus", COUNT(id) as count 
+         FROM "Script" 
+         WHERE "userId" = $1 
+         GROUP BY "workflowStatus"`,
+        [userId]
+      );
 
-      const formattedStats = stats.reduce((acc: any, item: any) => {
-        acc[item.workflowStatus] = item._count.id;
+      const formattedStats = statsResult.rows.reduce((acc: any, item: any) => {
+        acc[item.workflowStatus] = parseInt(item.count);
         return acc;
       }, {});
 
